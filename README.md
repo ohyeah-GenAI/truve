@@ -1,5 +1,5 @@
 # VQA + Bot Detection
-Musical Ticketing Platform **TRUVE**의 
+Musical Ticketing Platform **TRUVE**의 <Br>
 VQA(Visual Question Answering)와 봇 탐지(Bot Detection) 모듈을 함께 개발하는 실험/서비스 레포입니다.
 
 ## Why this repo
