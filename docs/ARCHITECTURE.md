@@ -108,7 +108,7 @@ flowchart TB
   API -. optional .-> TEL[Telemetry Ingest]
   TEL -. optional .-> AGG[Telemetry Aggregator]
   AGG -. optional .-> FEAT[Feature Builder]
-  FEAT -. optional .-> DET[Bot Detector (rules/model)]
+  FEAT -. optional .-> DET[Bot Detector rules/model]
 
   VAL --> DET
 
