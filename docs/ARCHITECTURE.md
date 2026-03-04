@@ -98,7 +98,7 @@ sequenceDiagram
 ```mermaid
 flowchart TB
   API[FastAPI Controllers]
-  API --> OR[Orchestrator (policy)]
+  API --> OR[Orchestrator policy]
   OR -->|type=vqa| VP[VQA Provider]
   OR -->|type=puzzle| PP[Puzzle Provider]
 
