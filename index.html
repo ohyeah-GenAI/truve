@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAVER VQA - 이미지 질문 답변 서비스</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-naver">NAVER</span>
+                <span class="logo-vqa">VQA</span>
+            </div>
+            <p class="subtitle">이미지에 대해 질문하고 답변을 받아보세요</p>
+        </header>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="main-content">
+            <div class="vqa-container">
+                <!-- 이미지 업로드 영역 -->
+                <div class="upload-section">
+                    <div class="image-upload-area" id="imageUploadArea">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <polyline points="17 8 12 3 7 8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <line x1="12" y1="3" x2="12" y2="15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <p class="upload-text">이미지를 드래그하거나 클릭하여 업로드하세요</p>
+                            <p class="upload-subtext">JPG, PNG, GIF (최대 10MB)</p>
+                        </div>
+                        <img id="previewImage" class="preview-image" style="display: none;" alt="미리보기">
+                        <button id="removeImageBtn" class="remove-image-btn" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <line x1="18" y1="6" x2="6" y2="18" stroke-width="2" stroke-linecap="round"/>
+                                <line x1="6" y1="6" x2="18" y2="18" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                </div>
+
+                <!-- 질문 입력 영역 -->
+                <div class="question-section">
+                    <div class="input-container">
+                        <input 
+                            type="text" 
+                            id="questionInput" 
+                            class="question-input" 
+                            placeholder="이미지에 대해 질문해주세요 (예: 이 이미지에 무엇이 있나요?)"
+                            disabled
+                        >
+                        <button id="submitBtn" class="submit-btn" disabled>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="hint-text">먼저 이미지를 업로드해주세요</p>
+                </div>
+
+                <!-- 답변 영역 -->
+                <div class="answer-section" id="answerSection" style="display: none;">
+                    <div class="answer-container">
+                        <h3 class="answer-title">답변</h3>
+                        <div id="answerList" class="answer-list">
+                            <!-- 답변 히스토리가 여기에 추가됩니다 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 로딩 인디케이터 -->
+                <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>답변을 생성하고 있습니다...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 푸터 -->
+        <footer class="footer">
+            <p>&copy; 2026 NAVER VQA Demo. 교육용 프로젝트입니다.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

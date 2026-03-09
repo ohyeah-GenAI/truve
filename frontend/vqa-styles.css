@@ -1,0 +1,496 @@
+/* VQA 봇 검증 시스템 스타일 */
+
+:root {
+    --naver-green: #03C75A;
+    --naver-dark-green: #02B350;
+    --primary-text: #333;
+    --secondary-text: #666;
+    --border-color: #e4e4e4;
+    --bg-gray: #f5f6f7;
+    --white: #ffffff;
+    --error: #ff3b30;
+    --success: #34c759;
+    --warning: #ff9500;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", helvetica, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.demo-container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 1200px;
+    width: 100%;
+}
+
+/* 로그인 폼 */
+.login-form {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 450px;
+    overflow: hidden;
+}
+
+.login-header {
+    background: var(--white);
+    padding: 2.5rem 2rem 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.login-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.logo-naver {
+    color: var(--naver-green);
+    font-weight: bold;
+}
+
+.logo-text {
+    color: var(--primary-text);
+    margin-left: 0.3rem;
+}
+
+.login-body {
+    padding: 2rem;
+}
+
+.input-group {
+    margin-bottom: 1rem;
+}
+
+.login-input {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.login-input:focus {
+    outline: none;
+    border-color: var(--naver-green);
+    box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.1);
+}
+
+/* VQA 영역 */
+.vqa-area {
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background: var(--bg-gray);
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.vqa-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--secondary-text);
+    font-weight: 600;
+}
+
+.shield-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--naver-green);
+}
+
+/* 챌린지 컨테이너 */
+.challenge-container {
+    min-height: 200px;
+    background: var(--white);
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.challenge-loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--secondary-text);
+}
+
+.challenge-question {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--primary-text);
+}
+
+/* 이미지 그리드 챌린지 */
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.image-grid-item {
+    position: relative;
+    aspect-ratio: 1;
+    cursor: pointer;
+    border: 3px solid transparent;
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.2s;
+    background: var(--bg-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-grid-item:hover {
+    border-color: var(--naver-green);
+    transform: scale(1.05);
+}
+
+.image-grid-item.selected {
+    border-color: var(--naver-green);
+    box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.2);
+}
+
+.image-grid-item::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    background: var(--naver-green);
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-grid-item.selected::after {
+    display: flex;
+    content: '✓';
+    color: white;
+    font-weight: bold;
+}
+
+.image-placeholder {
+    font-size: 3rem;
+}
+
+/* 텍스트 입력 챌린지 */
+.text-challenge {
+    text-align: center;
+}
+
+.challenge-image {
+    max-width: 100%;
+    height: auto;
+    margin: 1rem 0;
+    border-radius: 6px;
+}
+
+.challenge-input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1.1rem;
+    text-align: center;
+    letter-spacing: 0.3em;
+    font-family: monospace;
+    text-transform: uppercase;
+}
+
+.challenge-input:focus {
+    outline: none;
+    border-color: var(--naver-green);
+}
+
+/* 간단한 클릭 챌린지 */
+.click-challenge {
+    text-align: center;
+    padding: 2rem;
+}
+
+.checkbox-large {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+}
+
+/* VQA 푸터 */
+.vqa-footer {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-refresh {
+    flex: 0;
+    padding: 0.7rem 1rem;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-refresh:hover {
+    background: var(--bg-gray);
+}
+
+.btn-refresh svg {
+    width: 16px;
+    height: 16px;
+}
+
+.btn-verify {
+    flex: 1;
+    padding: 0.8rem;
+    background: var(--naver-green);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-verify:hover:not(:disabled) {
+    background: var(--naver-dark-green);
+}
+
+.btn-verify:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* VQA 상태 메시지 */
+.vqa-status {
+    margin-top: 1rem;
+    padding: 0.8rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+    display: none;
+}
+
+.vqa-status.show {
+    display: block;
+}
+
+.vqa-status.error {
+    background: #ffe5e5;
+    color: var(--error);
+}
+
+.vqa-status.success {
+    background: #e5f9e5;
+    color: var(--success);
+}
+
+.vqa-status.info {
+    background: #e5f3ff;
+    color: #007AFF;
+}
+
+/* 로그인 버튼 */
+.btn-login {
+    width: 100%;
+    padding: 1rem;
+    background: var(--naver-green);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.btn-login:hover {
+    background: var(--naver-dark-green);
+}
+
+.login-options {
+    color: var(--secondary-text);
+    font-size: 0.9rem;
+}
+
+/* 개발자 패널 */
+.dev-panel {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 450px;
+    width: 100%;
+}
+
+.dev-panel h3 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-text);
+}
+
+.service-status {
+    margin-bottom: 1.5rem;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.8rem;
+    background: var(--bg-gray);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.status-label {
+    font-weight: 600;
+    color: var(--secondary-text);
+}
+
+.status-value {
+    font-weight: 600;
+}
+
+.status-value.online {
+    color: var(--success);
+}
+
+.status-value.offline {
+    color: var(--error);
+}
+
+.current-session,
+.current-token {
+    margin-bottom: 1rem;
+}
+
+.current-session code,
+.current-token code {
+    display: block;
+    background: var(--bg-gray);
+    padding: 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    word-break: break-all;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+/* 모달 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 3rem 2rem;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 400px;
+    animation: modalSlide 0.3s ease;
+}
+
+@keyframes modalSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-icon {
+    margin-bottom: 1.5rem;
+}
+
+.modal-icon svg {
+    width: 64px;
+    height: 64px;
+    color: var(--success);
+}
+
+.modal-content h2 {
+    color: var(--primary-text);
+    margin-bottom: 1rem;
+}
+
+.modal-content p {
+    color: var(--secondary-text);
+    margin-bottom: 2rem;
+}
+
+.btn-modal-close {
+    padding: 0.8rem 2rem;
+    background: var(--naver-green);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-modal-close:hover {
+    background: var(--naver-dark-green);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .demo-container {
+        flex-direction: column;
+    }
+    
+    .login-form,
+    .dev-panel {
+        max-width: 100%;
+    }
+}

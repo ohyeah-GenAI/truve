@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: vqa-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - vqa-network
+
+  # Challenge Service
+  challenge-service:
+    build:
+      context: ./services/challenge-service
+      dockerfile: Dockerfile
+    container_name: vqa-challenge-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - vqa-network
+    restart: unless-stopped
+
+  # Verification Service
+  verification-service:
+    build:
+      context: ./services/verification-service
+      dockerfile: Dockerfile
+    container_name: vqa-verification-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - REDIS_URL=redis://redis:6379
+      - CHALLENGE_SERVICE_URL=http://challenge-service:3001
+      - JWT_SECRET=${JWT_SECRET:-vqa-jwt-secret-change-in-production}
+      - NODE_ENV=production
+    depends_on:
+      redis:
+        condition: service_healthy
+      challenge-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - vqa-network
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: vqa-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - CHALLENGE_SERVICE_URL=http://challenge-service:3001
+      - VERIFICATION_SERVICE_URL=http://verification-service:3002
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
+      - NODE_ENV=production
+    depends_on:
+      challenge-service:
+        condition: service_healthy
+      verification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - vqa-network
+    restart: unless-stopped
+
+networks:
+  vqa-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
