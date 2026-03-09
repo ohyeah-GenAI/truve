@@ -1,0 +1,7 @@
+# Default owners
+* @your-github-id
+
+# Domain owners
+/src/vqa/ @your-github-id
+/src/bot_detection/ @your-github-id
+/docs/ @your-github-id
