@@ -6,12 +6,18 @@
 - 테스트 수행 결과 첨부
 - 리스크/롤백 방법 기재
 - VQA/봇탐지 성능 영향 명시
+- 챌린지 타입별 영향 범위 표기
 
 ## For model-related PRs
 - 데이터셋 버전 명시
 - 실험 설정(seed, split, threshold) 명시
 - 이전 대비 성능 비교(표)
 - 실패 사례 최소 3건 첨부
+
+## For challenge policy PRs
+- 적용 대상(샘플링/의심 트래픽) 명시
+- 실패 시 대응(재시도/차단/지연) 명시
+- latency/cost 변화 요약
 
 ## Review SLAs
 - 리뷰 요청 후 24시간 내 1차 피드백
