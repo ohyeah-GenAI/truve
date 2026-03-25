@@ -15,9 +15,5 @@
 - [pr-rules](collaboration/pr-rules.md)
 - [collab-playbook](collaboration/collab-playbook.md)
 
-## 04. Research
-- [illusion-vqa](research/illusion-vqa/)
-- [midterm-report](research/midterm-report/)
-
-## 05. References
+## 04. References
 - [github-frame](reference/github-frame.md)
