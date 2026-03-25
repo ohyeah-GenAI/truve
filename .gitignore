@@ -19,3 +19,6 @@ htmlcov/
 artifacts/
 checkpoints/
 logs/
+
+# Local research drafts
+docs/research/
