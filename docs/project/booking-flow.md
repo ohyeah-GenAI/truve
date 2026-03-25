@@ -1,4 +1,4 @@
-# Booking Flow (with CAPTCHA)
+# Booking Flow
 
 ## User Flow
 
