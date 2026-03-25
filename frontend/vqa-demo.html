@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAVER VQA - 봇 검증 시스템</title>
+    <link rel="stylesheet" href="vqa-styles.css">
+</head>
+<body>
+    <div class="demo-container">
+        <!-- 데모 로그인 폼 -->
+        <div class="login-form">
+            <div class="login-header">
+                <h1>
+                    <span class="logo-naver">NAVER</span>
+                    <span class="logo-text">로그인</span>
+                </h1>
+            </div>
+            
+            <div class="login-body">
+                <div class="input-group">
+                    <input type="text" id="userId" placeholder="아이디" class="login-input">
+                </div>
+                <div class="input-group">
+                    <input type="password" id="userPw" placeholder="비밀번호" class="login-input">
+                </div>
+                
+                <!-- VQA 챌린지 영역 -->
+                <div class="vqa-area" id="vqaArea" style="display: none;">
+                    <div class="vqa-header">
+                        <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>사람인지 확인합니다</span>
+                    </div>
+                    
+                    <!-- 챌린지 컨테이너 -->
+                    <div class="challenge-container" id="challengeContainer">
+                        <!-- 여기에 동적으로 챌린지가 로드됩니다 -->
+                    </div>
+                    
+                    <div class="vqa-footer">
+                        <button class="btn-refresh" id="btnRefresh" title="새로운 챌린지">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M23 4v6h-6M1 20v-6h6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            새로 고침
+                        </button>
+                        <button class="btn-verify" id="btnVerify" disabled>
+                            확인
+                        </button>
+                    </div>
+                    
+                    <div class="vqa-status" id="vqaStatus"></div>
+                </div>
+                
+                <button class="btn-login" id="btnLogin">
+                    로그인
+                </button>
+                
+                <div class="login-options">
+                    <label><input type="checkbox"> 로그인 상태 유지</label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 시스템 정보 패널 (개발자용) -->
+        <div class="dev-panel">
+            <h3>🔧 MSA VQA 시스템 상태</h3>
+            <div class="service-status">
+                <div class="status-item">
+                    <span class="status-label">API Gateway:</span>
+                    <span class="status-value" id="statusGateway">확인 중...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Challenge Service:</span>
+                    <span class="status-value" id="statusChallenge">확인 중...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Verification Service:</span>
+                    <span class="status-value" id="statusVerification">확인 중...</span>
+                </div>
+            </div>
+            <div class="current-session">
+                <strong>Session ID:</strong>
+                <code id="currentSessionId">없음</code>
+            </div>
+            <div class="current-token">
+                <strong>Verification Token:</strong>
+                <code id="currentToken">없음</code>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 성공 모달 -->
+    <div class="modal" id="successModal" style="display: none;">
+        <div class="modal-content success">
+            <div class="modal-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M22 4L12 14.01l-3-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h2>검증 성공!</h2>
+            <p>사람임이 확인되었습니다.</p>
+            <button class="btn-modal-close" onclick="closeModal()">확인</button>
+        </div>
+    </div>
+    
+    <script src="vqa-app.js"></script>
+</body>
+</html>

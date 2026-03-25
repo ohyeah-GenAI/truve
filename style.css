@@ -1,0 +1,408 @@
+/* 전역 스타일 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --naver-green: #03C75A;
+    --naver-dark-green: #02B350;
+    --text-primary: #333;
+    --text-secondary: #666;
+    --text-tertiary: #999;
+    --border-color: #e4e4e4;
+    --background-gray: #f7f9fa;
+    --white: #ffffff;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", helvetica, "Apple SD Gothic Neo", sans-serif;
+    background-color: var(--background-gray);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 헤더 */
+.header {
+    background-color: var(--white);
+    padding: 2rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.logo-naver {
+    color: var(--naver-green);
+}
+
+.logo-vqa {
+    color: var(--text-primary);
+    margin-left: 0.3rem;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* 메인 컨텐츠 */
+.main-content {
+    flex: 1;
+    padding: 2rem 1rem;
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.vqa-container {
+    background-color: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+}
+
+/* 이미지 업로드 영역 */
+.upload-section {
+    margin-bottom: 2rem;
+}
+
+.image-upload-area {
+    position: relative;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.image-upload-area:hover {
+    border-color: var(--naver-green);
+    background-color: #f8fff8;
+}
+
+.image-upload-area.drag-over {
+    border-color: var(--naver-green);
+    background-color: #f0fff5;
+}
+
+.image-upload-area.has-image {
+    border-style: solid;
+    cursor: default;
+}
+
+.image-upload-area.has-image:hover {
+    background-color: var(--white);
+}
+
+.upload-placeholder {
+    text-align: center;
+    padding: 2rem;
+}
+
+.upload-icon {
+    width: 64px;
+    height: 64px;
+    color: var(--text-tertiary);
+    margin-bottom: 1rem;
+}
+
+.upload-text {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.upload-subtext {
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 500px;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.remove-image-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    transform: scale(1.1);
+}
+
+.remove-image-btn svg {
+    width: 20px;
+    height: 20px;
+    color: var(--white);
+}
+
+/* 질문 입력 영역 */
+.question-section {
+    margin-bottom: 2rem;
+}
+
+.input-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.question-input {
+    flex: 1;
+    padding: 1rem 1.2rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.question-input:focus {
+    border-color: var(--naver-green);
+    box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.1);
+}
+
+.question-input:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+.submit-btn {
+    background-color: var(--naver-green);
+    border: none;
+    border-radius: 8px;
+    width: 56px;
+    height: 56px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background-color: var(--naver-dark-green);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.submit-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.submit-btn svg {
+    width: 24px;
+    height: 24px;
+    color: var(--white);
+}
+
+.hint-text {
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+    padding-left: 0.5rem;
+}
+
+/* 답변 영역 */
+.answer-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 2rem;
+}
+
+.answer-title {
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.answer-title::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background-color: var(--naver-green);
+    margin-right: 0.8rem;
+    border-radius: 2px;
+}
+
+.answer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.qa-item {
+    background-color: var(--background-gray);
+    border-radius: 8px;
+    padding: 1.5rem;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.question-text {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: flex-start;
+}
+
+.question-text::before {
+    content: 'Q.';
+    color: var(--naver-green);
+    font-weight: bold;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+.answer-text {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    padding-left: 1.8rem;
+    display: flex;
+    align-items: flex-start;
+}
+
+.answer-text::before {
+    content: 'A.';
+    color: var(--naver-dark-green);
+    font-weight: bold;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+.timestamp {
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+    text-align: right;
+    margin-top: 0.8rem;
+}
+
+/* 로딩 인디케이터 */
+.loading-indicator {
+    text-align: center;
+    padding: 2rem;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--naver-green);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-indicator p {
+    color: var(--text-secondary);
+}
+
+/* 푸터 */
+.footer {
+    background-color: var(--white);
+    padding: 1.5rem;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .main-content {
+        padding: 1rem;
+    }
+
+    .vqa-container {
+        padding: 1.5rem;
+    }
+
+    .logo {
+        font-size: 1.5rem;
+    }
+
+    .image-upload-area {
+        min-height: 200px;
+    }
+
+    .question-input {
+        font-size: 0.95rem;
+        padding: 0.8rem 1rem;
+    }
+
+    .submit-btn {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 1.5rem 1rem;
+    }
+
+    .vqa-container {
+        padding: 1rem;
+    }
+
+    .qa-item {
+        padding: 1rem;
+    }
+
+    .answer-text {
+        padding-left: 1.3rem;
+    }
+}
