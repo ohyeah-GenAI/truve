@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Puzzle Bot Detection (v2)</title>
+    <link rel="stylesheet" href="/static/styles/puzzle.css" />
+</head>
+<body class="theme-naver">
+<div class="container">
+
+    <header>
+        <h1>🧩 Puzzle Bot Detection</h1>
+        <p class="subtitle">퍼즐로 사람임을 증명하세요</p>
+    </header>
+
+    <section class="card type-selector">
+        <p class="section-label">퍼즐 유형 선택 (v2)</p>
+        <div class="radio-group">
+            <label>
+                <input type="radio" name="puzzleType" value="slider" checked />
+                🔲 Slider
+            </label>
+            <label>
+                <input type="radio" name="puzzleType" value="clickseq" />
+                🎯 Click Sequence
+            </label>
+            <label>
+                <input type="radio" name="puzzleType" value="pathtrace_v2" />
+                ✍️ Path Trace
+            </label>
+        </div>
+        <button id="generateBtn" class="btn btn-primary">퍼즐 생성</button>
+    </section>
+
+    <section id="puzzleArea" class="card puzzle-area hidden">
+        <p id="puzzleHint" class="puzzle-hint"></p>
+        <div id="puzzleContainer"></div>
+        <button id="submitBtn" class="btn btn-success">제출하기</button>
+    </section>
+
+    <section id="resultArea" class="card hidden">
+        <div id="resultCard" class="result-card">
+            <div id="resultIcon" class="result-icon"></div>
+            <h2 id="resultTitle"></h2>
+
+            <div class="result-details">
+                <div class="detail-row">
+                    <span class="label">Bot Risk Score</span>
+                    <span id="riskScore" class="value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Rule Score / ML Score</span>
+                    <span id="subScores" class="value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">판정 결과</span>
+                    <span id="judgement" class="value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">퍼즐 정답</span>
+                    <span id="puzzleCorrect" class="value"></span>
+                </div>
+            </div>
+
+            <details class="feature-details">
+                <summary>행동 특징 데이터 펼치기</summary>
+                <pre id="featuresJson"></pre>
+            </details>
+
+            <button id="retryBtn" class="btn btn-secondary">다시 시도</button>
+        </div>
+    </section>
+
+</div>
+
+<script src="/static/tracker/mouse_tracker.js?v=20260316"></script>
+<script src="/static/puzzle/slider.js?v=20260316"></script>
+<script src="/static/puzzle/clickseq_v2.js?v=20260316"></script>
+<script src="/static/puzzle/pathtrace_v2.js?v=20260316"></script>
+<script>
+'use strict';
+const API_BASE = window.location.origin.replace(/\/$/, '') + '/api';
+const tracker = new MouseTracker();
+
+let sessionId = null;
+let puzzleType = null;
+let submitInFlight = false;
+
+const HINTS = {
+    slider: '🔲 조각을 오른쪽으로 드래그하여 빈 자리를 채우세요.',
+    clickseq: '🎯 원을 1번부터 순서대로 클릭하세요. 틀리면 다시 시작됩니다.',
+    pathtrace_v2: '✍️ 🟢 시작점에서 🔴 끝점까지 경로를 따라 천천히 그려주세요.',
+};
+
+async function requestJson(path, options = {}) {
+    const url = API_BASE + path;
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error(await res.text());
+    return await res.json();
+}
+
+document.getElementById('generateBtn').addEventListener('click', async () => {
+    const type = document.querySelector('input[name="puzzleType"]:checked').value;
+    puzzleType = type;
+
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.textContent = '생성 중...';
+
+    try {
+        const data = await requestJson(`/puzzle/generate?type=${type}`, { method: 'GET' });
+
+        sessionId = data.session_id;
+        renderPuzzle(type, data.puzzle_config);
+
+        document.getElementById('puzzleHint').textContent = HINTS[type];
+        document.getElementById('puzzleArea').classList.remove('hidden');
+        document.getElementById('resultArea').classList.add('hidden');
+    } catch (err) {
+        alert('퍼즐 생성 실패: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '퍼즐 생성';
+    }
+});
+
+function renderPuzzle(type, config) {
+    const container = document.getElementById('puzzleContainer');
+    container.innerHTML = '';
+    tracker.stop();
+
+    if (type === 'slider') SliderPuzzle.render(container, config, tracker);
+    else if (type === 'clickseq') ClickSequencePuzzleV2.render(container, config, tracker);
+    else if (type === 'pathtrace_v2') PathTracePuzzleV2.render(container, config, tracker);
+}
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+    if (!sessionId || submitInFlight) return;
+
+    let answer;
+    if (puzzleType === 'slider') answer = SliderPuzzle.getAnswer();
+    else if (puzzleType === 'clickseq') answer = ClickSequencePuzzleV2.getAnswer();
+    else if (puzzleType === 'pathtrace_v2') answer = PathTracePuzzleV2.getAnswer();
+
+    tracker.stop();
+    const events = tracker.getEvents().slice(-1500);
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '검증 중...';
+    submitInFlight = true;
+
+    try {
+        const data = await requestJson('/puzzle/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: sessionId,
+                puzzle_type: puzzleType,
+                answer,
+                events,
+            }),
+        });
+        showResult(data);
+        sessionId = null;
+    } catch (err) {
+        alert('제출 실패: ' + err.message);
+    } finally {
+        submitInFlight = false;
+        btn.disabled = false;
+        btn.textContent = 'submitted' ? '제출하기' : '제출하기';
+    }
+});
+
+function showResult(data) {
+    document.getElementById('puzzleArea').classList.add('hidden');
+    document.getElementById('resultArea').classList.remove('hidden');
+
+    const success = data.result === 'success';
+    const isBot = data.is_bot;
+    const card = document.getElementById('resultCard');
+
+    card.className = 'result-card ' + (success ? 'success' : isBot ? 'bot' : 'wrong');
+    document.getElementById('resultIcon').textContent = success ? '✅' : isBot ? '🚫' : '❌';
+    document.getElementById('resultTitle').textContent = success ? '인증 성공!' : isBot ? '봇으로 판단됨' : '퍼즐 오답';
+
+    const score = data.bot_risk_score;
+    const scoreEl = document.getElementById('riskScore');
+    scoreEl.textContent = `${score} / 100`;
+    scoreEl.className = 'value ' + (score >= 70 ? 'danger' : score >= 40 ? 'warning' : 'safe');
+
+    document.getElementById('subScores').textContent = `Rule: ${data.rule_score ?? '-'} / ML: ${data.ml_score ?? '-'}`;
+    document.getElementById('judgement').textContent = isBot ? '🤖 봇' : '👤 사람';
+    document.getElementById('puzzleCorrect').textContent = data.puzzle_correct ? '✔ 정답' : '✗ 오답';
+    document.getElementById('featuresJson').textContent = JSON.stringify(data.features, null, 2);
+}
+
+document.getElementById('retryBtn').addEventListener('click', () => {
+    document.getElementById('resultArea').classList.add('hidden');
+});
+</script>
+</body>
+</html>
