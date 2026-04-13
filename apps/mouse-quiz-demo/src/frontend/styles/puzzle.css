@@ -1,0 +1,505 @@
+/* ── Reset & Base ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #eef2f7;
+    color: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px 80px;
+}
+
+.container {
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+header { text-align: center; padding: 8px 0; }
+header h1   { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.5px; }
+header .subtitle { font-size: 0.9rem; color: #666; margin-top: 6px; }
+
+/* ── Card ──────────────────────────────────────────────────────── */
+.card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, .07);
+}
+
+/* ── Section Label ─────────────────────────────────────────────── */
+.section-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 14px;
+}
+
+/* ── Radio Group ───────────────────────────────────────────────── */
+.radio-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+.radio-group label {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 9px 14px;
+    border: 2px solid #e0e4ea;
+    border-radius: 10px;
+    transition: border-color .2s, background .2s;
+    user-select: none;
+}
+.radio-group label:has(input:checked) {
+    border-color: #4361ee;
+    background: #eef1ff;
+    color: #4361ee;
+}
+.radio-group input[type="radio"] { accent-color: #4361ee; }
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+.btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.btn-primary  { background: #4361ee; color: #fff; }
+.btn-primary:hover:not(:disabled)  { filter: brightness(1.08); }
+
+.btn-success  { background: #2ec4b6; color: #fff; margin-top: 16px; }
+.btn-success:hover:not(:disabled)  { filter: brightness(1.08); }
+
+.btn-secondary { background: #e8ecf0; color: #444; margin-top: 14px; }
+.btn-secondary:hover { filter: brightness(.95); }
+
+/* ── Puzzle Area ───────────────────────────────────────────────── */
+.puzzle-hint {
+    font-size: 0.88rem;
+    color: #555;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    background: #f5f7ff;
+    border-left: 4px solid #4361ee;
+    border-radius: 6px;
+}
+#puzzleContainer {
+    border: 2px solid #e0e4ea;
+    border-radius: 10px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+    background: #fafafa;
+}
+
+/* ── Slider Puzzle ─────────────────────────────────────────────── */
+.slider-wrapper {
+    position: relative;
+    display: inline-block;
+}
+.slider-bg-img {
+    display: block;
+    pointer-events: none;
+}
+.slider-piece-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: grab;
+    border: 2px solid #4361ee;
+    box-shadow: 0 0 10px rgba(67, 97, 238, .5);
+    transition: box-shadow .1s;
+}
+.slider-piece-overlay:active { cursor: grabbing; }
+
+.slider-track-bar {
+    height: 38px;
+    background: #e0e4ea;
+    border-top: 1px solid #ccc;
+    position: relative;
+    cursor: pointer;
+}
+.slider-knob {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 38px;
+    background: #4361ee;
+    border-radius: 0 6px 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: grab;
+    box-shadow: 2px 0 8px rgba(67, 97, 238, .4);
+    min-width: 38px;
+}
+.slider-knob:active { cursor: grabbing; }
+
+/* ── Drag & Drop Puzzle ────────────────────────────────────────── */
+.dragdrop-grid {
+    display: grid;
+    gap: 3px;
+    background: #b0b8c4;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.dragdrop-cell {
+    background: #e8ecf0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid transparent;
+    transition: border-color .15s, background .15s;
+    position: relative;
+    overflow: hidden;
+}
+.dragdrop-cell.drag-over {
+    border-color: #4361ee;
+    background: #dde2ff;
+}
+.dragdrop-cell img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: grab;
+}
+.dragdrop-cell img:active { cursor: grabbing; opacity: .75; }
+
+/* ── Rotate Puzzle ─────────────────────────────────────────────── */
+.rotate-grid {
+    display: grid;
+    gap: 3px;
+    background: #b0b8c4;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.rotate-cell {
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+}
+.rotate-cell:hover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(67, 97, 238, .15);
+}
+.rotate-cell img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .3s ease;
+    pointer-events: none;
+}
+
+/* ── Click Sequence v2: 라벨 외부 배치 ──────────────────────── */
+.clickseq-wrapper-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.clickseq-labels-v2 {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.clickseq-guide-v2,
+.clickseq-progress-v2 {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #d9e2f2;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    color: #334155;
+    white-space: nowrap;
+}
+.clickseq-progress-v2 {
+    font-weight: 700;
+    color: #4361ee;
+}
+
+/* ── Click Sequence Puzzle ───────────────────────────────────── */
+.clickseq-board {
+    position: relative;
+    border-radius: 10px;
+    background: radial-gradient(circle at 25% 25%, #f6f8ff, #e9efff);
+    border: 2px solid #dbe3f6;
+    overflow: hidden;
+}
+.clickseq-guide,
+.clickseq-progress {
+    position: absolute;
+    left: 10px;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #d9e2f2;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    color: #334155;
+}
+.clickseq-guide { top: 10px; }
+.clickseq-progress { top: 40px; }
+.clickseq-target {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid #4361ee;
+    background: #ffffff;
+    color: #2a3b8f;
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform .08s, background .15s, color .15s, box-shadow .15s;
+    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.2);
+}
+.clickseq-target:hover { transform: scale(1.05); }
+.clickseq-target:active { transform: scale(0.96); }
+.clickseq-target.done {
+    background: #2ec4b6;
+    border-color: #2ec4b6;
+    color: #fff;
+}
+.clickseq-board.shake {
+    animation: clickseq-shake .2s linear 1;
+}
+@keyframes clickseq-shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(4px); }
+    50% { transform: translateX(-4px); }
+    75% { transform: translateX(3px); }
+    100% { transform: translateX(0); }
+}
+
+/* ── Path Trace Puzzle ───────────────────────────────────────── */
+.pathtrace-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.pathtrace-canvas {
+    display: block;
+    border-radius: 10px;
+    border: 2px solid #d8deea;
+    background: linear-gradient(180deg, #fcfdff 0%, #f5f8ff 100%);
+    touch-action: none;
+    cursor: crosshair;
+}
+.pathtrace-caption {
+    font-size: 0.8rem;
+    color: #5a6475;
+}
+
+/* ── Result Card ───────────────────────────────────────────────── */
+.result-card { text-align: center; }
+.result-icon { font-size: 3.4rem; margin-bottom: 10px; }
+.result-card h2 { font-size: 1.5rem; margin-bottom: 20px; }
+.result-card.success h2 { color: #2ec4b6; }
+.result-card.bot     h2 { color: #e63946; }
+.result-card.wrong   h2 { color: #f4a261; }
+
+.result-details {
+    background: #f7f9fc;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    text-align: left;
+}
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid #eaecf0;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row .label { font-size: 0.88rem; color: #777; }
+.detail-row .value { font-weight: 700; font-size: 0.93rem; }
+.value.safe    { color: #2ec4b6; }
+.value.warning { color: #f4a261; }
+.value.danger  { color: #e63946; }
+
+.feature-details {
+    text-align: left;
+    border: 1px solid #e0e4ea;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+.feature-details summary {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    background: #f7f9fc;
+    font-weight: 600;
+}
+.feature-details pre {
+    padding: 14px 16px;
+    font-size: 0.78rem;
+    background: #1a1a2e;
+    color: #a8dadc;
+    overflow-x: auto;
+    max-height: 220px;
+    overflow-y: auto;
+    line-height: 1.6;
+}
+
+/* ── Utility ───────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ── Naver Theme (v2) ─────────────────────────────────────────── */
+.theme-naver {
+    font-family: 'NanumSquare', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background:
+        radial-gradient(circle at 8% 6%, rgba(3, 199, 90, 0.09) 0 120px, transparent 130px),
+        radial-gradient(circle at 92% 12%, rgba(3, 199, 90, 0.08) 0 90px, transparent 100px),
+        linear-gradient(180deg, #f7f9fb 0%, #eef1f3 100%);
+    color: #202020;
+}
+
+.theme-naver .container {
+    max-width: 620px;
+    gap: 16px;
+}
+
+.theme-naver .card {
+    border: 1px solid #dbe2e8;
+    border-radius: 12px;
+    box-shadow: 0 10px 22px rgba(22, 34, 51, 0.06);
+}
+
+.theme-naver header h1 {
+    font-size: 1.86rem;
+    color: #111;
+}
+
+.theme-naver header .subtitle {
+    color: #5f6a73;
+}
+
+.theme-naver .section-label {
+    color: #5f6971;
+}
+
+.theme-naver .radio-group label {
+    border: 1.5px solid #d5dde4;
+    background: #fff;
+}
+
+.theme-naver .radio-group label:has(input:checked) {
+    border-color: #03c75a;
+    background: #effbf4;
+    color: #049f4b;
+}
+
+.theme-naver .radio-group input[type="radio"] {
+    accent-color: #03c75a;
+}
+
+.theme-naver .btn-primary,
+.theme-naver .btn-success {
+    background: linear-gradient(180deg, #05d860 0%, #03c75a 100%);
+    color: #fff;
+}
+
+.theme-naver .btn-secondary {
+    background: #edf1f4;
+    color: #3d4852;
+}
+
+.theme-naver .puzzle-hint {
+    background: #effbf4;
+    border-left-color: #03c75a;
+    color: #2f5f45;
+}
+
+.theme-naver #puzzleContainer {
+    border-color: #d0dae2;
+    background: #f8fafc;
+}
+
+.theme-naver .slider-piece-overlay {
+    border-color: #03c75a;
+    box-shadow: 0 0 10px rgba(3, 199, 90, 0.4);
+}
+
+.theme-naver .slider-knob {
+    background: #03c75a;
+    box-shadow: 2px 0 8px rgba(3, 199, 90, 0.35);
+}
+
+.theme-naver .clickseq-progress-v2 {
+    color: #03c75a;
+}
+
+.theme-naver .clickseq-board {
+    background: radial-gradient(circle at 25% 25%, #f6fff9, #edf7f2);
+    border-color: #cfe7d8;
+}
+
+.theme-naver .clickseq-target {
+    border-color: #03c75a;
+    color: #06753a;
+    box-shadow: 0 2px 8px rgba(3, 199, 90, 0.22);
+}
+
+.theme-naver .clickseq-target.done {
+    background: #03c75a;
+    border-color: #03c75a;
+}
+
+.theme-naver .pathtrace-canvas {
+    border-color: #cfe2d8;
+    background: linear-gradient(180deg, #fbfffc 0%, #eff8f2 100%);
+}
+
+.theme-naver .result-card.success h2,
+.theme-naver .value.safe {
+    color: #03c75a;
+}
+
+.theme-naver .feature-details pre {
+    background: #1f2a24;
+    color: #b8f0cd;
+}
+
+@media (max-width: 640px) {
+    .theme-naver {
+        padding: 18px 12px 40px;
+    }
+
+    .theme-naver .card {
+        padding: 16px;
+    }
+}
