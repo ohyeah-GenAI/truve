@@ -1,21 +1,18 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from supabase import Client
 
+from src.database import get_supabase
+from src.modules.qa import service as qa_service
 from src.modules.qa.router import router as qa_router
 from src.modules.receipts.router import router as receipts_router
+from src.schemas import JudgeRequest, JudgeResponse
+
 
 class HealthResponse(BaseModel):
     status: str
 
-class JudgeRequest(BaseModel):
-    problem_id: str
-    user_answer: str
-
-class JudgeResponse(BaseModel):
-    is_human: bool
-    module: str
-    passed: bool
 
 app = FastAPI(
     title="Receipt CAPTCHA API",
@@ -47,14 +44,15 @@ def ai_health_check():
 
 
 @app.post("/judge", tags=["AI Verification"], response_model=JudgeResponse)
-def judge(request: JudgeRequest):
+def judge(request: JudgeRequest, db: Client = Depends(get_supabase)):
     """
-    내부 봇 판별 (단일 엔드포인트) - ModuleController에서 호출됨
+    내부 봇 판별 엔드포인트 - ModuleController에서 호출됨.
+    problem_id는 qa_pairs 테이블의 question_id(int)에 해당.
     """
-    # TODO: 실제 영수증 정답 검증 로직 연결 (현재는 dummy 반환)
-    # response example: is_human=True, module="receipt", passed=True
-    return JudgeResponse(
-        is_human=True,
-        module="receipt",
-        passed=True
-    )
+    try:
+        question_id = int(request.problem_id)
+    except (ValueError, TypeError):
+        return JudgeResponse(is_human=False, module="receipt", passed=False)
+
+    passed = qa_service.verify_single_answer(db, question_id, request.user_answer)
+    return JudgeResponse(is_human=passed, module="receipt", passed=passed)

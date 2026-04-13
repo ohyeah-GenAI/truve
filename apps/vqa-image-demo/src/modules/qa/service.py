@@ -3,6 +3,15 @@ from supabase import Client
 from src.modules.qa.models import QAPair, QuestionOnly, VerifyRequest, VerifyResponse, VerifyResult
 
 
+def verify_single_answer(db: Client, question_id: int, user_answer: str) -> bool:
+    """단일 질문 ID와 사용자 답변을 검증. 정답이면 True 반환."""
+    res = db.table("qa_pairs").select("answer").eq("id", question_id).execute()
+    if not res.data:
+        return False
+    expected = res.data[0]["answer"]
+    return expected.strip().lower() == user_answer.strip().lower()
+
+
 def get_questions(db: Client, receipt_id: str) -> list[QuestionOnly]:
     res = (
         db.table("qa_pairs")

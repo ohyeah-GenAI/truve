@@ -11,12 +11,12 @@ router = APIRouter(prefix="/receipts", tags=["receipts"])
 
 @router.get("/random", response_model=CaptchaResponse)
 def get_random_captcha(
-    receipt_type: str | None = Query(None, description="?�수�?종류 (restaurant ??"),
+    receipt_type: str | None = Query(None, description="영수증 종류 (예: restaurant)"),
     db: Client = Depends(get_supabase),
 ):
     captcha = service.get_random_captcha(db, receipt_type)
     if not captcha:
-        raise HTTPException(status_code=404, detail="?�수�??�는 질문??찾을 ???�습?�다.")
+        raise HTTPException(status_code=404, detail="영수증 또는 질문을 찾을 수 없습니다.")
     return captcha
 
 
@@ -35,5 +35,5 @@ def list_receipts(
 def get_receipt(receipt_id: str, db: Client = Depends(get_supabase)):
     receipt = service.get_receipt_by_id(db, receipt_id)
     if not receipt:
-        raise HTTPException(status_code=404, detail="?�수증을 찾을 ???�습?�다.")
+        raise HTTPException(status_code=404, detail="영수증을 찾을 수 없습니다.")
     return receipt
