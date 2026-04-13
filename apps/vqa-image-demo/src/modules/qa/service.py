@@ -1,6 +1,6 @@
 from supabase import Client
 
-from app.modules.qa.models import QAPair, QuestionOnly, VerifyRequest, VerifyResponse, VerifyResult
+from src.modules.qa.models import QAPair, QuestionOnly, VerifyRequest, VerifyResponse, VerifyResult
 
 
 def get_questions(db: Client, receipt_id: str) -> list[QuestionOnly]:

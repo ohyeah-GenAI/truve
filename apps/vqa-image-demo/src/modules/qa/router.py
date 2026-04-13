@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 
-from app.database import get_supabase
-from app.modules.qa import service
-from app.modules.qa.models import QuestionOnly, VerifyRequest, VerifyResponse
+from src.database import get_supabase
+from src.modules.qa import service
+from src.modules.qa.models import QuestionOnly, VerifyRequest, VerifyResponse
 
 router = APIRouter(prefix="/receipts", tags=["qa"])
 
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/receipts", tags=["qa"])
 def get_questions(receipt_id: str, db: Client = Depends(get_supabase)):
     questions = service.get_questions(db, receipt_id)
     if not questions:
-        raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="질문??찾을 ???�습?�다.")
     return questions
 
 

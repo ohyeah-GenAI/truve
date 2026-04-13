@@ -2,7 +2,7 @@ import random
 
 from supabase import Client
 
-from app.modules.receipts.models import Receipt, ReceiptSummary
+from src.modules.receipts.models import Receipt, ReceiptSummary
 
 
 def get_receipt_by_id(db: Client, receipt_id: str) -> Receipt | None:
@@ -27,7 +27,7 @@ def get_random_receipt(db: Client, receipt_type: str | None = None) -> Receipt |
 
 
 def get_random_captcha(db: Client, receipt_type: str | None = None):
-    from app.modules.qa.models import CaptchaResponse
+    from src.modules.qa.models import CaptchaResponse
 
     receipt = get_random_receipt(db, receipt_type)
     if not receipt:
