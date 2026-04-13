@@ -27,6 +27,19 @@ class SubmitPayload(BaseModel):
     save_json: bool = False
 
 
+class JudgeRequest(BaseModel):
+    session_id: str
+    puzzle_type: str
+    answer: Dict[str, Any]
+    events: List[Dict[str, Any]]
+
+
+class JudgeResponse(BaseModel):
+    is_human: bool
+    module: str
+    passed: bool
+
+
 class HealthResponse(BaseModel):
     status: str
 
@@ -219,6 +232,41 @@ async def submit_puzzle(payload: SubmitPayload) -> SubmitResponse:
             pass
 
     return response
+
+
+@app.post("/judge", tags=["AI Verification"], response_model=JudgeResponse)
+async def judge(payload: JudgeRequest) -> JudgeResponse:
+    """내부 봇 판별 엔드포인트 — ModuleController에서 호출됨."""
+    session = _SESSIONS.pop(payload.session_id, None)
+    if not session:
+        return JudgeResponse(is_human=False, module="mouse", passed=False)
+
+    if payload.puzzle_type not in ALLOWED_TYPES:
+        return JudgeResponse(is_human=False, module="mouse", passed=False)
+
+    if session["puzzle_type"] != payload.puzzle_type:
+        return JudgeResponse(is_human=False, module="mouse", passed=False)
+
+    correct_answer = session["answer"]
+    puzzle_correct = bool(
+        _validator.validate(
+            puzzle_type=payload.puzzle_type,
+            correct_answer=correct_answer,
+            user_answer=payload.answer,
+        )
+    )
+
+    row = _build_feature_row(payload.puzzle_type, payload.events)
+    df = pd.DataFrame([row])
+
+    proba = float(_human_vs_bot_model.predict_proba(df)[:, 1][0])
+    is_bot = proba >= BOT_THRESHOLD
+
+    return JudgeResponse(
+        is_human=not is_bot,
+        module="mouse",
+        passed=puzzle_correct and not is_bot,
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover
