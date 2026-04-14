@@ -1,0 +1,51 @@
+name: Build & Push module-controller to GHCR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/module-controller/**'
+    tags:
+      - 'module-controller-v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME#module-controller-v}"
+          else
+            VERSION="dev"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/module-controller
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/ohyeah-genai/truve/module-controller:${{ steps.version.outputs.version }}
+            ghcr.io/ohyeah-genai/truve/module-controller:latest
