@@ -10,3 +10,6 @@ requires-python = ">=3.10"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "local_smoke: model-executing Illusion-VQA smoke coverage for explicit local MPS runs",
+]
