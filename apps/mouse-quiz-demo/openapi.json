@@ -1,0 +1,338 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Puzzle Bot Detection MSA",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Index",
+        "description": "Serve the main frontend page.\n\n정적 HTML을 그대로 내려만 주고, 디스크에 별도 로그는 남기지 않는다.",
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/ai/health": {
+      "get": {
+        "summary": "Internal Ai Health",
+        "operationId": "internal_ai_health_internal_ai_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalAIHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/puzzle/generate": {
+      "get": {
+        "summary": "Generate Puzzle",
+        "operationId": "generate_puzzle_api_puzzle_generate_get",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratePuzzleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/puzzle/submit": {
+      "post": {
+        "summary": "Submit Puzzle",
+        "operationId": "submit_puzzle_api_puzzle_submit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GeneratePuzzleResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "puzzle_type": {
+            "type": "string",
+            "title": "Puzzle Type"
+          },
+          "puzzle_config": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Puzzle Config"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "puzzle_type",
+          "puzzle_config"
+        ],
+        "title": "GeneratePuzzleResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse"
+      },
+      "InternalAIHealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "model_loaded": {
+            "type": "boolean",
+            "title": "Model Loaded"
+          },
+          "model_path": {
+            "type": "string",
+            "title": "Model Path"
+          },
+          "supported_puzzle_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Puzzle Types"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "model_loaded",
+          "model_path",
+          "supported_puzzle_types"
+        ],
+        "title": "InternalAIHealthResponse"
+      },
+      "SubmitPayload": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "puzzle_type": {
+            "type": "string",
+            "title": "Puzzle Type"
+          },
+          "answer": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Answer"
+          },
+          "events": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "save_json": {
+            "type": "boolean",
+            "title": "Save Json",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "puzzle_type",
+          "answer",
+          "events"
+        ],
+        "title": "SubmitPayload"
+      },
+      "SubmitResponse": {
+        "properties": {
+          "result": {
+            "type": "string",
+            "title": "Result"
+          },
+          "is_bot": {
+            "type": "boolean",
+            "title": "Is Bot"
+          },
+          "bot_risk_score": {
+            "type": "number",
+            "title": "Bot Risk Score"
+          },
+          "puzzle_correct": {
+            "type": "boolean",
+            "title": "Puzzle Correct"
+          },
+          "features": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result",
+          "is_bot",
+          "bot_risk_score",
+          "puzzle_correct",
+          "features"
+        ],
+        "title": "SubmitResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
