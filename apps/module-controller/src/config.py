@@ -18,5 +18,5 @@ MODULE_URLS: dict[str, str] = {
 DEDUP_TTL = 60          # VQA 동일 문제 재출제 금지 TTL (초)
 DEDUP_MAX_RETRY = 5     # dedup 충돌 시 최대 재시도 횟수
 FLOW_SESSION_TTL = 600  # 다단계 챌린지 세션 유효 시간 (초)
-VERIFIED_TTL = 600      # 통과 사용자 캐시 유효 시간 (초)
 PERF_LEVEL_CACHE_TTL = 300  # security_level Redis 캐시 TTL (초)
+MAX_ATTEMPTS_PER_STEP = 2   # 단계별 최대 시도 횟수 (초과 시 차단)

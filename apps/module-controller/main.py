@@ -65,9 +65,10 @@ class JudgeRequest(BaseModel):
 class JudgeResponse(BaseModel):
     passed: bool
     flow_complete: bool
+    blocked: bool = False          # 2차 실패 시 차단
     module: Optional[str] = None
     is_human: Optional[bool] = None
-    next_puzzle_type: Optional[str] = None
+    next_puzzle_type: Optional[str] = None   # 다음 단계 or 재도전 퍼즐 공용
     next_puzzle_config: Optional[Dict[str, Any]] = None
 
 

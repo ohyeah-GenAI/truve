@@ -10,9 +10,9 @@ from fastapi import HTTPException
 from src.config import (
     DEDUP_MAX_RETRY,
     FLOW_SESSION_TTL,
+    MAX_ATTEMPTS_PER_STEP,
     MODULE_URLS,
     SECURITY_POLICY,
-    VERIFIED_TTL,
 )
 from src.dedup import try_claim
 from src.redis_client import get_redis
@@ -59,17 +59,11 @@ async def start_challenge(performance_id: str, user_key: str) -> dict:
     """
     챌린지 플로우 시작.
 
-    TODO(백엔드 답변 후 확정):
-      - user_key 형태: 현재 단순 문자열, JWT/queue_token으로 교체 가능
-      - 진입 방향: 현재 클라이언트 직접 호출 가정 (B안)
+    확정 (2026-04-14 백엔드 팀 답변):
+      - user_key: API Gateway가 HTTP 헤더(X-User-Id)로 전달하는 UUID 문자열
+      - 진입 방향: 백엔드 서버 → 컨트롤러 서버 간 호출 (A안 확정)
+      - JWT 검증: Gateway에서 처리, 컨트롤러 자체 검증 불필요
     """
-    redis = get_redis()
-
-    # 이미 통과한 사용자 → 챌린지 skip
-    verified_key = f"verified:{user_key}:{performance_id}"
-    if await redis.exists(verified_key):
-        return {"flow_complete": True, "passed": True, "reason": "already_verified"}
-
     from src.db_client import get_security_level
 
     security_level = await get_security_level(performance_id)
@@ -86,10 +80,12 @@ async def start_challenge(performance_id: str, user_key: str) -> dict:
         "sequence": sequence,
         "current_step": 0,
         "step_session_ids": {t: None for t in sequence},
+        "attempt_counts": {t: 0 for t in sequence},  # 단계별 시도 횟수
         "completed": [],
     }
     flow_data["step_session_ids"][first_type] = first_puzzle["session_id"]
 
+    redis = get_redis()
     await redis.setex(
         f"challenge_flow:{flow_session_id}",
         FLOW_SESSION_TTL,
@@ -137,22 +133,41 @@ async def submit_judge(
     result = r.json()
 
     if not result.get("passed", False):
-        await redis.delete(flow_key)
+        attempt_counts: Dict[str, int] = flow.get("attempt_counts", {t: 0 for t in sequence})
+        attempt_counts[current_type] = attempt_counts.get(current_type, 0) + 1
+
+        if attempt_counts[current_type] >= MAX_ATTEMPTS_PER_STEP:
+            # 2차 실패 → 차단
+            await redis.delete(flow_key)
+            return {
+                "passed": False,
+                "flow_complete": False,
+                "blocked": True,
+                "module": current_type,
+                "is_human": result.get("is_human", False),
+            }
+
+        # 1차 실패 → 재도전 허용, 새 퍼즐 발급
+        retry_puzzle = await _generate_puzzle(current_type)
+        flow["attempt_counts"] = attempt_counts
+        flow["step_session_ids"][current_type] = retry_puzzle["session_id"]
+        await redis.setex(flow_key, FLOW_SESSION_TTL, json.dumps(flow))
         return {
             "passed": False,
             "flow_complete": False,
+            "blocked": False,
             "module": current_type,
             "is_human": result.get("is_human", False),
+            "next_puzzle_type": current_type,
+            "next_puzzle_config": retry_puzzle["puzzle_config"],
         }
 
     flow["completed"].append(current_type)
     next_step = current_step + 1
 
     if next_step >= len(sequence):
-        # 모든 단계 통과 → verified 캐시 저장
+        # 모든 단계 통과 → 플로우 종료
         await redis.delete(flow_key)
-        verified_key = f"verified:{flow['user_key']}:{flow['performance_id']}"
-        await redis.setex(verified_key, VERIFIED_TTL, "1")
         return {"passed": True, "flow_complete": True}
 
     # 다음 단계 퍼즐 발급

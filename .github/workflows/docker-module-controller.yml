@@ -6,7 +6,7 @@ on:
     paths:
       - 'apps/module-controller/**'
     tags:
-      - 'v*.*.*'
+      - 'module-controller-v*.*.*'
   workflow_dispatch:
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
         id: version
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
+            VERSION="${GITHUB_REF_NAME#module-controller-v}"
           else
             VERSION="dev"
           fi
