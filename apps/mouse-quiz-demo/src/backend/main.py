@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from datetime import datetime
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List
@@ -12,9 +14,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from backend.feature_engineering import FEATURE_KEYS, extract_motion_features
-from backend.puzzle.generator import PuzzleGenerator
-from backend.puzzle.validator import PuzzleValidator
+from .feature_engineering import FEATURE_KEYS, extract_motion_features
+from .puzzle.generator import PuzzleGenerator
+from .puzzle.validator import PuzzleValidator
 
 
 class SubmitPayload(BaseModel):
@@ -22,6 +24,32 @@ class SubmitPayload(BaseModel):
     puzzle_type: str
     answer: Dict[str, Any]
     events: List[Dict[str, Any]]
+    save_json: bool = False
+
+
+class HealthResponse(BaseModel):
+    status: str
+
+
+class InternalAIHealthResponse(BaseModel):
+    status: str
+    model_loaded: bool
+    model_path: str
+    supported_puzzle_types: List[str]
+
+
+class GeneratePuzzleResponse(BaseModel):
+    session_id: str
+    puzzle_type: str
+    puzzle_config: Dict[str, Any]
+
+
+class SubmitResponse(BaseModel):
+    result: str
+    is_bot: bool
+    bot_risk_score: float
+    puzzle_correct: bool
+    features: Dict[str, Any]
 
 
 ALLOWED_TYPES = {"slider", "clickseq", "pathtrace_v2"}
@@ -51,6 +79,7 @@ _validator = PuzzleValidator()
 
 _SESSIONS: Dict[str, Dict[str, Any]] = {}
 BOT_THRESHOLD = 0.5
+TEST_LOG_DIR = BASE_DIR / "test_logs"
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -68,13 +97,23 @@ async def index() -> HTMLResponse:
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 
-@app.get("/api/health")
-async def health() -> Dict[str, str]:
+@app.get("/api/health", response_model=HealthResponse)
+async def health() -> HealthResponse:
     return {"status": "ok"}
 
 
-@app.get("/api/puzzle/generate")
-async def generate_puzzle(type: str = Query(..., alias="type")) -> Dict[str, Any]:
+@app.get("/internal/ai/health", response_model=InternalAIHealthResponse)
+async def internal_ai_health() -> InternalAIHealthResponse:
+    return {
+        "status": "ok",
+        "model_loaded": _human_vs_bot_model is not None,
+        "model_path": str(HUMAN_VS_BOT_MODEL_PATH),
+        "supported_puzzle_types": sorted(ALLOWED_TYPES),
+    }
+
+
+@app.get("/api/puzzle/generate", response_model=GeneratePuzzleResponse)
+async def generate_puzzle(type: str = Query(..., alias="type")) -> GeneratePuzzleResponse:
     if type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail=f"Unsupported puzzle type: {type}")
 
@@ -112,8 +151,24 @@ def _build_feature_row(puzzle_type: str, events: List[Dict[str, Any]]) -> Dict[s
     return row
 
 
-@app.post("/api/puzzle/submit")
-async def submit_puzzle(payload: SubmitPayload) -> Dict[str, Any]:
+def _persist_test_json(payload: SubmitPayload, response: Dict[str, Any]) -> None:
+    TEST_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    now = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    file_name = f"{now}__{payload.puzzle_type}__{payload.session_id[:8]}.json"
+    out_path = TEST_LOG_DIR / file_name
+    doc = {
+        "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "session_id": payload.session_id,
+        "puzzle_type": payload.puzzle_type,
+        "answer": payload.answer,
+        "events": payload.events,
+        "response": response,
+    }
+    out_path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.post("/api/puzzle/submit", response_model=SubmitResponse)
+async def submit_puzzle(payload: SubmitPayload) -> SubmitResponse:
     session = _SESSIONS.pop(payload.session_id, None)
     if not session:
         raise HTTPException(status_code=400, detail="Invalid or expired session_id")
@@ -138,8 +193,7 @@ async def submit_puzzle(payload: SubmitPayload) -> Dict[str, Any]:
     df = pd.DataFrame([row])
 
     proba = float(_human_vs_bot_model.predict_proba(df)[:, 1][0])
-    pred = int(_human_vs_bot_model.predict(df)[0])
-    is_bot = bool(pred)
+    is_bot = proba >= BOT_THRESHOLD
 
     bot_risk_score = round(proba * 100.0, 1)
 
@@ -152,7 +206,7 @@ async def submit_puzzle(payload: SubmitPayload) -> Dict[str, Any]:
 
     response_features = row.copy()
 
-    return {
+    response = {
         "result": result,
         "is_bot": is_bot,
         "bot_risk_score": bot_risk_score,
@@ -160,8 +214,23 @@ async def submit_puzzle(payload: SubmitPayload) -> Dict[str, Any]:
         "features": response_features,
     }
 
+    if payload.save_json:
+        try:
+            _persist_test_json(payload, response)
+        except OSError:
+            # 저장 실패가 사용자 흐름을 막지 않도록 무시
+            pass
+
+    return response
+
 
 if __name__ == "__main__":  # pragma: no cover
+    import sys
     import uvicorn
+    from pathlib import Path
 
-    uvicorn.run("backend.main:app", host="127.0.0.1", port=8002, reload=True)
+    # Add parent directories to path for imports
+    project_root = Path(__file__).parent.parent.parent
+    sys.path.insert(0, str(project_root))
+
+    uvicorn.run("main:app", host="127.0.0.1", port=8002, reload=True)
