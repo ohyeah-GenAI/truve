@@ -1,9 +1,9 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from supabase import Client
+from sqlalchemy.orm import Session
 
-from src.database import get_supabase
+from src.database import get_db
 from src.modules.qa import service as qa_service
 from src.modules.qa.router import router as qa_router
 from src.modules.receipts.router import router as receipts_router
@@ -44,7 +44,7 @@ def ai_health_check():
 
 
 @app.post("/judge", tags=["AI Verification"], response_model=JudgeResponse)
-def judge(request: JudgeRequest, db: Client = Depends(get_supabase)):
+def judge(request: JudgeRequest, db: Session = Depends(get_db)):
     """
     내부 봇 판별 엔드포인트 - ModuleController에서 호출됨.
     problem_id는 qa_pairs 테이블의 question_id(int)에 해당.

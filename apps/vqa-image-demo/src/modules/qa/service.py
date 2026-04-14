@@ -1,34 +1,56 @@
-from supabase import Client
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from src.modules.qa.models import QAPair, QuestionOnly, VerifyRequest, VerifyResponse, VerifyResult
 
 
-def verify_single_answer(db: Client, question_id: int, user_answer: str) -> bool:
+def verify_single_answer(db: Session, question_id: int, user_answer: str) -> bool:
     """단일 질문 ID와 사용자 답변을 검증. 정답이면 True 반환."""
-    res = db.table("qa_pairs").select("answer").eq("id", question_id).execute()
-    if not res.data:
+    result = db.execute(
+        text("SELECT answer FROM qa_pairs WHERE id = :question_id"),
+        {"question_id": question_id},
+    )
+    row = result.fetchone()
+    if not row:
         return False
-    expected = res.data[0]["answer"]
+    expected = row[0]
     return expected.strip().lower() == user_answer.strip().lower()
 
 
-def get_questions(db: Client, receipt_id: str) -> list[QuestionOnly]:
-    res = (
-        db.table("qa_pairs")
-        .select("id, receipt_id, question, order")
-        .eq("receipt_id", receipt_id)
-        .order("order")
-        .execute()
+def get_questions(db: Session, receipt_id: str) -> list[QuestionOnly]:
+    result = db.execute(
+        text(
+            "SELECT id, receipt_id, question, `order` FROM qa_pairs "
+            "WHERE receipt_id = :receipt_id ORDER BY `order`"
+        ),
+        {"receipt_id": receipt_id},
     )
-    return [QuestionOnly(**row) for row in res.data]
+    return [
+        QuestionOnly(id=row[0], receipt_id=row[1], question=row[2], order=row[3])
+        for row in result.fetchall()
+    ]
 
 
-def get_qa_pairs(db: Client, receipt_id: str) -> list[QAPair]:
-    res = db.table("qa_pairs").select("*").eq("receipt_id", receipt_id).order("order").execute()
-    return [QAPair(**row) for row in res.data]
+def get_qa_pairs(db: Session, receipt_id: str) -> list[QAPair]:
+    result = db.execute(
+        text("SELECT id, receipt_id, question, answer, `order`, created_at FROM qa_pairs "
+             "WHERE receipt_id = :receipt_id ORDER BY `order`"),
+        {"receipt_id": receipt_id},
+    )
+    return [
+        QAPair(
+            id=row[0],
+            receipt_id=row[1],
+            question=row[2],
+            answer=row[3],
+            order=row[4],
+            created_at=row[5],
+        )
+        for row in result.fetchall()
+    ]
 
 
-def verify_answers(db: Client, receipt_id: str, request: VerifyRequest) -> VerifyResponse:
+def verify_answers(db: Session, receipt_id: str, request: VerifyRequest) -> VerifyResponse:
     qa_pairs = get_qa_pairs(db, receipt_id)
     qa_map = {qa.id: qa for qa in qa_pairs}
 
