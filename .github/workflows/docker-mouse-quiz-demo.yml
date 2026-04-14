@@ -2,12 +2,18 @@ name: Build & Push mouse-quiz-demo to GHCR
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    tags:
+      - 'mouse-quiz-demo/v*.*.*'
     paths:
       - 'apps/mouse-quiz-demo/**'
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: '배포 버전 (예: 0.1.0)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -19,15 +25,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract version from tag
-        id: version
+      - name: Determine image tags
+        id: meta
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
+          IMAGE="ghcr.io/ohyeah-genai/truve/mouse-quiz-demo"
+          SHA="${GITHUB_SHA::7}"
+
+          if [[ "${GITHUB_REF}" == refs/tags/mouse-quiz-demo/v* ]]; then
+            # git tag: mouse-quiz-demo/v0.1.0  →  image tag: 0.1.0
+            VERSION="${GITHUB_REF_NAME#mouse-quiz-demo/v}"
+            TAGS="${IMAGE}:${VERSION},${IMAGE}:latest"
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            # workflow_dispatch에서 버전 직접 지정
+            VERSION="${{ github.event.inputs.version }}"
+            TAGS="${IMAGE}:${VERSION},${IMAGE}:latest"
           else
-            VERSION="dev"
+            # main 브랜치 push → main-<sha> 태그
+            TAGS="${IMAGE}:main-${SHA},${IMAGE}:dev"
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+          echo "Tagging as: $TAGS"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -40,11 +58,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: apps/mouse-quiz-demo
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ghcr.io/ohyeah-genai/truve/mouse-quiz-demo:${{ steps.version.outputs.version }}
-            ghcr.io/ohyeah-genai/truve/mouse-quiz-demo:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

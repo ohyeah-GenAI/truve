@@ -1,0 +1,24 @@
+# Secrets & keys — must never be baked into the image
+.env
+.env.*
+*.pem
+*.key
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Tests / dev artifacts
+tests/
+.pytest_cache/
+
+# Editor / OS noise
+.git
+.gitignore
+.DS_Store
+Thumbs.db
+
+# Docker files themselves (not needed at runtime)
+Dockerfile
+.dockerignore
