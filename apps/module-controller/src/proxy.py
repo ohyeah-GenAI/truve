@@ -59,10 +59,9 @@ async def start_challenge(performance_id: str, user_key: str) -> dict:
     """
     챌린지 플로우 시작.
 
-    확정 (2026-04-14 백엔드 팀 답변):
-      - user_key: API Gateway가 HTTP 헤더(X-User-Id)로 전달하는 UUID 문자열
-      - 진입 방향: 백엔드 서버 → 컨트롤러 서버 간 호출 (A안 확정)
-      - JWT 검증: Gateway에서 처리, 컨트롤러 자체 검증 불필요
+    진입 방향: 프론트엔드 → 컨트롤러 직접 호출 (B안)
+    - user_key: API Gateway가 HTTP 헤더(X-User-Id)로 전달하는 UUID 문자열
+    - JWT 검증: Gateway에서 처리, 컨트롤러 자체 검증 불필요
     """
     from src.db_client import get_security_level
 

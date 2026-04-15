@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>본인 확인</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    /* ── Choice buttons ─────────────────────────────────────────────── */
+    .choice-btn {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+    .choice-btn:hover:not(.selected) {
+      border-color: #9ca3af;
+      background: #e5e7eb;
+    }
+    .choice-btn.selected {
+      border: 2px solid #ef4444;
+      background: #fee2e2;
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.25);
+      color: #991b1b;
+    }
+
+    /* ── Board grid ─────────────────────────────────────────────────── */
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .board-cell {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 6px;
+      overflow: hidden;
+      pointer-events: none;
+      background: #e5e7eb;
+    }
+    .cell-coord {
+      position: absolute;
+      bottom: 3px;
+      left: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+      pointer-events: none;
+      line-height: 1;
+    }
+    .board-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ── Choices grid ───────────────────────────────────────────────── */
+    .choices-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    /* ── Submit button ──────────────────────────────────────────────── */
+    .submit-btn {
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: not-allowed;
+      background: #d1d5db;
+      color: #9ca3af;
+      transition: all 0.15s ease;
+    }
+    .submit-btn.active {
+      background: #ef4444;
+      color: #ffffff;
+      cursor: pointer;
+    }
+    .submit-btn.active:hover {
+      background: #dc2626;
+    }
+
+    /* ── Refresh button ─────────────────────────────────────────────── */
+    .refresh-btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      color: #374151;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .refresh-btn:hover {
+      background: #e5e7eb;
+    }
+    .refresh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── Modal overlay ──────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal-box {
+      background: white;
+      border-radius: 16px;
+      padding: 36px 32px;
+      max-width: 300px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ── Spinner ────────────────────────────────────────────────────── */
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #f3f4f6;
+      border-top-color: #ef4444;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Choice badge ───────────────────────────────────────────────── */
+    .choice-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #d1d5db;
+      color: #374151;
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 8px;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .selected .choice-badge {
+      background: #ef4444;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Main card ───────────────────────────────────────────────────── -->
+  <div style="background:white; border-radius:16px; box-shadow:0 8px 40px rgba(0,0,0,0.12); max-width:480px; width:100%; overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:#ef4444; padding:18px 24px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:22px; line-height:1;">🛡</span>
+        <div>
+          <div style="color:white; font-size:17px; font-weight:700; letter-spacing:-0.3px;">본인 확인</div>
+          <div style="color:#fecaca; font-size:12px; margin-top:2px;">아래 이미지를 보고 질문에 답해주세요.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:20px 24px 24px;">
+
+      <!-- Loading state -->
+      <div id="loading-state" style="padding:40px 0; text-align:center;">
+        <div class="spinner"></div>
+        <div style="color:#9ca3af; font-size:13px; margin-top:12px;">문제를 불러오는 중...</div>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-state" style="display:none; padding:32px 0; text-align:center;">
+        <div style="font-size:40px;">⚠️</div>
+        <div style="color:#374151; font-size:15px; font-weight:600; margin-top:12px;">문제를 불러오지 못했습니다.</div>
+        <div style="color:#9ca3af; font-size:13px; margin-top:4px;" id="error-message">잠시 후 다시 시도해주세요.</div>
+        <button class="refresh-btn" style="margin-top:16px;" onclick="loadNewPuzzle()">🔄 다시 시도</button>
+      </div>
+
+      <!-- Content -->
+      <div id="content-state" style="display:none;">
+
+        <!-- Retry banner -->
+        <div id="retry-banner" style="display:none; align-items:center; gap:8px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:10px 14px; color:#9a3412; font-size:13px; margin-bottom:14px;">
+          <span style="font-size:16px;">⚠️</span>
+          <span id="retry-text">오답입니다. 다시 한 번 시도해보세요. (<span id="attempts-left">1</span>번 남음)</span>
+        </div>
+
+        <!-- 3×3 Board -->
+        <div class="board-grid" id="board-grid" style="margin-bottom:18px;"></div>
+
+        <!-- Question -->
+        <div style="font-size:14px; font-weight:600; color:#111827; margin-bottom:14px; line-height:1.55;" id="question-text"></div>
+
+        <!-- Choices -->
+        <div class="choices-grid" id="choices-grid" style="margin-bottom:20px;"></div>
+
+        <!-- Action row -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+          <button class="refresh-btn" id="refresh-btn" onclick="loadNewPuzzle()">🔄 새 문제</button>
+          <button class="submit-btn" id="submit-btn" onclick="submitAnswer()" disabled>확인하기 →</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Pass modal ──────────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="pass-modal" style="display:none;">
+    <div class="modal-box">
+      <div style="font-size:52px;">✅</div>
+      <div style="font-size:18px; font-weight:700; color:#15803d; margin-top:14px;">본인 확인 완료!</div>
+      <div style="color:#6b7280; font-size:13px; margin-top:6px;">잠시 후 창이 닫힙니다.</div>
+    </div>
+  </div>
+
+  <!-- ── Block modal ─────────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="block-modal" style="display:none;">
+    <div class="modal-box">
+      <div style="font-size:52px;">🚫</div>
+      <div style="font-size:18px; font-weight:700; color:#ef4444; margin-top:14px;">차단됨</div>
+      <div style="color:#6b7280; font-size:13px; margin-top:6px;">봇으로 의심되어 접근이 차단되었습니다.<br/>잠시 후 창이 닫힙니다.</div>
+    </div>
+  </div>
+
+  <script>
+    /* ── State ──────────────────────────────────────────────────────── */
+    const params        = new URLSearchParams(window.location.search);
+    const userId        = params.get('userId');
+    const showScheduleId = params.get('showScheduleId');
+
+    let sessionId    = params.get('session_id');
+    let selectedIndex = null;
+    let attemptCount  = 0;
+    let isSubmitting  = false;
+
+    /* ── DOM refs ───────────────────────────────────────────────────── */
+    const loadingState = document.getElementById('loading-state');
+    const errorState   = document.getElementById('error-state');
+    const contentState = document.getElementById('content-state');
+    const boardGrid    = document.getElementById('board-grid');
+    const questionText = document.getElementById('question-text');
+    const choicesGrid  = document.getElementById('choices-grid');
+    const submitBtn    = document.getElementById('submit-btn');
+    const refreshBtn   = document.getElementById('refresh-btn');
+    const retryBanner  = document.getElementById('retry-banner');
+    const retryText    = document.getElementById('retry-text');
+    const attemptsLeft = document.getElementById('attempts-left');
+    const errorMessage = document.getElementById('error-message');
+    const passModal    = document.getElementById('pass-modal');
+    const blockModal   = document.getElementById('block-modal');
+
+    /* ── View helpers ───────────────────────────────────────────────── */
+    function showLoading() {
+      loadingState.style.display = 'block';
+      errorState.style.display   = 'none';
+      contentState.style.display = 'none';
+    }
+
+    function showError(msg) {
+      loadingState.style.display = 'none';
+      errorState.style.display   = 'block';
+      contentState.style.display = 'none';
+      errorMessage.textContent   = msg || '잠시 후 다시 시도해주세요.';
+    }
+
+    function showContent() {
+      loadingState.style.display = 'none';
+      errorState.style.display   = 'none';
+      contentState.style.display = 'block';
+    }
+
+    /* ── window.close() with fallback ──────────────────────────────── */
+    function closeWindow() {
+      try { window.close(); } catch(e) {}
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f9fafb;"><div style="text-align:center;"><div style="font-size:56px">✅</div><div style="font-size:20px;font-weight:700;margin-top:12px;color:#111827;">확인 완료</div><div style="color:#6b7280;margin-top:6px;font-size:14px;">이 창을 닫아도 됩니다.</div></div></div>';
+    }
+
+    /* ── Board rendering ────────────────────────────────────────────── */
+    function renderBoard(board) {
+      boardGrid.innerHTML = '';
+      // board is indexed 0..8; display top-to-bottom: rows y=3,2,1
+      const displayOrder = [6, 7, 8, 3, 4, 5, 0, 1, 2];
+      displayOrder.forEach(idx => {
+        const cell = board[idx];
+        const div  = document.createElement('div');
+        div.className = 'board-cell';
+        if (cell && cell.img_url) {
+          const img = document.createElement('img');
+          img.src     = cell.img_url;
+          img.alt     = '';
+          img.loading = 'lazy';
+          div.appendChild(img);
+        }
+        // Coordinate label — HTML only, not in API response
+        const x = (idx % 3) + 1;
+        const y = Math.floor(idx / 3) + 1;
+        const coord = document.createElement('span');
+        coord.className   = 'cell-coord';
+        coord.textContent = `(${x},${y})`;
+        div.appendChild(coord);
+        boardGrid.appendChild(div);
+      });
+    }
+
+    /* ── Choices rendering ──────────────────────────────────────────── */
+    function renderChoices(choices) {
+      choicesGrid.innerHTML = '';
+      choices.forEach((choice, i) => {
+        const btn   = document.createElement('button');
+        btn.className       = 'choice-btn';
+        btn.dataset.index   = i;
+
+        const badge = document.createElement('span');
+        badge.className     = 'choice-badge';
+        badge.textContent   = String.fromCharCode(65 + i); // A, B, C, D
+
+        const label = document.createElement('span');
+        label.textContent = choice;
+
+        btn.appendChild(badge);
+        btn.appendChild(label);
+        btn.addEventListener('click', () => selectChoice(i));
+        choicesGrid.appendChild(btn);
+      });
+    }
+
+    /* ── Selection ──────────────────────────────────────────────────── */
+    function selectChoice(index) {
+      selectedIndex = index;
+      choicesGrid.querySelectorAll('.choice-btn').forEach((btn, i) => {
+        if (i === index) {
+          btn.classList.add('selected');
+        } else {
+          btn.classList.remove('selected');
+        }
+      });
+      submitBtn.disabled = false;
+      submitBtn.classList.add('active');
+    }
+
+    function resetSelection() {
+      selectedIndex = null;
+      choicesGrid.querySelectorAll('.choice-btn').forEach(btn => btn.classList.remove('selected'));
+      submitBtn.disabled = true;
+      submitBtn.classList.remove('active');
+      submitBtn.textContent = '확인하기 →';
+    }
+
+    /* ── Load session ───────────────────────────────────────────────── */
+    async function loadSession(sid) {
+      showLoading();
+      try {
+        const res = await fetch(`/api/session/${sid}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        renderBoard(data.board);
+        questionText.textContent = data.question;
+        renderChoices(data.choices);
+        retryBanner.style.display = 'none';
+        resetSelection();
+        showContent();
+      } catch(e) {
+        showError('문제를 불러오지 못했습니다. (' + e.message + ')');
+      }
+    }
+
+    /* ── New puzzle ─────────────────────────────────────────────────── */
+    async function loadNewPuzzle() {
+      refreshBtn.disabled = true;
+      showLoading();
+      try {
+        const res = await fetch('/api/puzzle/generate');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const gen = await res.json();
+        sessionId    = gen.session_id;
+        attemptCount = 0;
+
+        // Update URL without page reload
+        const newP = new URLSearchParams();
+        newP.set('session_id', sessionId);
+        if (userId)          newP.set('userId', userId);
+        if (showScheduleId)  newP.set('showScheduleId', showScheduleId);
+        window.history.replaceState({}, '', '?' + newP.toString());
+
+        await loadSession(sessionId);
+      } catch(e) {
+        showError('새 문제를 불러오지 못했습니다. (' + e.message + ')');
+      } finally {
+        refreshBtn.disabled = false;
+      }
+    }
+
+    /* ── Submit ─────────────────────────────────────────────────────── */
+    async function submitAnswer() {
+      if (selectedIndex === null || isSubmitting) return;
+
+      isSubmitting = true;
+      submitBtn.disabled = true;
+      submitBtn.classList.remove('active');
+      submitBtn.textContent = '확인 중...';
+
+      try {
+        const body = { answer_index: selectedIndex };
+        if (userId)          body.userId         = parseInt(userId, 10);
+        if (showScheduleId)  body.showScheduleId = parseInt(showScheduleId, 10);
+
+        const res = await fetch(`/api/session/${sessionId}/answer`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (data.passed) {
+          /* ── Pass ── */
+          passModal.style.display = 'flex';
+          setTimeout(closeWindow, 1500);
+        } else {
+          attemptCount++;
+          if (attemptCount >= 2) {
+            /* ── Block ── */
+            blockModal.style.display = 'flex';
+            setTimeout(closeWindow, 2000);
+          } else {
+            /* ── Retry (1st failure) ── */
+            attemptsLeft.textContent = String(2 - attemptCount);
+            retryText.innerHTML = '오답입니다. 다시 한 번 시도해보세요. (<span id="attempts-left">' + (2 - attemptCount) + '</span>번 남음)';
+            retryBanner.style.display = 'flex';
+            resetSelection();
+            isSubmitting = false;
+          }
+        }
+      } catch(e) {
+        /* Network / server error — restore submit */
+        submitBtn.disabled = false;
+        submitBtn.classList.add('active');
+        submitBtn.textContent = '확인하기 →';
+        isSubmitting = false;
+        retryBanner.style.display = 'flex';
+        retryText.textContent = '오류가 발생했습니다. 다시 시도해주세요. (' + e.message + ')';
+      }
+    }
+
+    /* ── Init ───────────────────────────────────────────────────────── */
+    (function init() {
+      if (!sessionId) {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        if (isLocal) {
+          // Local dev: auto-generate a puzzle for standalone testing
+          loadNewPuzzle();
+        } else {
+          showError('session_id 파라미터가 없습니다.');
+        }
+        return;
+      }
+      loadSession(sessionId);
+    })();
+  </script>
+</body>
+</html>
