@@ -1,4 +1,4 @@
-name: Build & Push vqa-image-demo to GHCR
+name: Build & Push vqa-image-demo to Docker Hub
 
 on:
   push:
@@ -17,7 +17,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build-and-push:
@@ -28,7 +27,7 @@ jobs:
       - name: Determine image tags
         id: meta
         run: |
-          IMAGE="ghcr.io/ohyeah-genai/truve/vqa-image-demo"
+          IMAGE="hamstead/truve_genai-vqa-image-demo"
           SHA="${GITHUB_SHA::7}"
 
           if [[ "${GITHUB_REF}" == refs/tags/vqa-image-demo/v* ]]; then
@@ -50,12 +49,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: hamstead
+          password: ${{ secrets.HAMSTEAD }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
