@@ -1,0 +1,205 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Module Controller",
+    "version": "0.1.1"
+  },
+  "paths": {
+    "/challenge/start": {
+      "post": {
+        "summary": "챌린지 플로우 시작",
+        "description": "대기열 통과 후 챌린지 플로우 시작. performance_id로 보안 레벨을 조회하여 챌린지 순서를 결정하고 첫 번째 퍼즐을 발급한다.",
+        "operationId": "challenge_start",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChallengeStartRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChallengeStartResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/challenge/judge": {
+      "post": {
+        "summary": "현재 단계 답변 채점",
+        "description": "현재 단계 답변을 채점한다. 실패 시 재도전 또는 차단, 통과 시 다음 퍼즐 반환, 전 단계 통과 시 flow_complete=true 반환.",
+        "operationId": "challenge_judge",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/JudgeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JudgeResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/ai/health": {
+      "get": {
+        "summary": "헬스체크",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "서비스 정상",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChallengeStartRequest": {
+        "type": "object",
+        "required": ["performance_id", "user_key"],
+        "properties": {
+          "performance_id": {
+            "type": "string",
+            "description": "공연 ID (보안 레벨 조회에 사용)"
+          },
+          "user_key": {
+            "type": "string",
+            "description": "API Gateway가 X-User-Id 헤더로 주입하는 사용자 식별자"
+          }
+        }
+      },
+      "ChallengeStartResponse": {
+        "type": "object",
+        "properties": {
+          "flow_session_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "다단계 챌린지 세션 ID (이후 /challenge/judge 호출에 사용)"
+          },
+          "puzzle_type": {
+            "type": "string",
+            "nullable": true,
+            "description": "첫 번째 퍼즐 타입 (mouse-quiz / vqa-image / vqa-illusion)"
+          },
+          "puzzle_config": {
+            "type": "object",
+            "nullable": true,
+            "description": "퍼즐 렌더링에 필요한 설정 (popup_url 등 퍼즐 타입별 상이)",
+            "additionalProperties": true
+          },
+          "flow_complete": {
+            "type": "boolean",
+            "description": "보안 레벨 LOW이고 첫 단계에서 즉시 완료 시 true"
+          },
+          "passed": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["flow_complete"]
+      },
+      "JudgeRequest": {
+        "type": "object",
+        "required": ["flow_session_id", "answer"],
+        "properties": {
+          "flow_session_id": {
+            "type": "string",
+            "description": "/challenge/start 응답에서 받은 세션 ID"
+          },
+          "answer": {
+            "type": "object",
+            "description": "퍼즐 타입별 답변 데이터",
+            "additionalProperties": true,
+            "examples": [
+              { "answer_index": 2 },
+              { "path": [[100, 200], [150, 250]] }
+            ]
+          },
+          "events": {
+            "type": "array",
+            "nullable": true,
+            "description": "마우스 퀴즈 전용 마우스 이벤트 배열",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "JudgeResponse": {
+        "type": "object",
+        "required": ["passed", "flow_complete"],
+        "properties": {
+          "passed": {
+            "type": "boolean",
+            "description": "현재 단계 통과 여부"
+          },
+          "flow_complete": {
+            "type": "boolean",
+            "description": "모든 챌린지 단계 통과 완료 여부"
+          },
+          "blocked": {
+            "type": "boolean",
+            "default": false,
+            "description": "단계별 최대 시도 횟수(2회) 초과 시 true — 티켓팅 차단"
+          },
+          "module": {
+            "type": "string",
+            "nullable": true,
+            "description": "채점된 모듈 타입"
+          },
+          "is_human": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "봇 판별 결과"
+          },
+          "next_puzzle_type": {
+            "type": "string",
+            "nullable": true,
+            "description": "다음 단계 또는 재도전 퍼즐 타입 (passed=false이고 blocked=false이면 재도전, passed=true이면 다음 단계)"
+          },
+          "next_puzzle_config": {
+            "type": "object",
+            "nullable": true,
+            "description": "다음/재도전 퍼즐 렌더링 설정",
+            "additionalProperties": true
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        }
+      }
+    }
+  }
+}
