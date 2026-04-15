@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
-from supabase import Client
+from sqlalchemy.orm import Session
 
-from app.database import get_supabase
-from app.modules.qa import service
-from app.modules.qa.models import QuestionOnly, VerifyRequest, VerifyResponse
+from src.database import get_db
+from src.modules.qa import service
+from src.modules.qa.models import QuestionOnly, VerifyRequest, VerifyResponse
 
 router = APIRouter(prefix="/receipts", tags=["qa"])
 
 
 @router.get("/{receipt_id}/questions", response_model=list[QuestionOnly])
-def get_questions(receipt_id: str, db: Client = Depends(get_supabase)):
+def get_questions(receipt_id: str, db: Session = Depends(get_db)):
     questions = service.get_questions(db, receipt_id)
     if not questions:
         raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다.")
@@ -20,6 +20,6 @@ def get_questions(receipt_id: str, db: Client = Depends(get_supabase)):
 def verify_answers(
     receipt_id: str,
     request: VerifyRequest,
-    db: Client = Depends(get_supabase),
+    db: Session = Depends(get_db),
 ):
     return service.verify_answers(db, receipt_id, request)

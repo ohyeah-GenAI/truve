@@ -1,7 +1,5 @@
 import random
-
 from supabase import Client
-
 from app.modules.receipts.models import Receipt, ReceiptSummary
 
 
@@ -13,6 +11,7 @@ def get_receipt_by_id(db: Client, receipt_id: str) -> Receipt | None:
 
 
 def get_random_receipt(db: Client, receipt_type: str | None = None) -> Receipt | None:
+    # 전체 id 목록만 가져온 뒤 Python에서 랜덤 선택 (Supabase는 ORDER BY RANDOM() 미지원)
     query = db.table("receipts").select("id")
     if receipt_type:
         query = query.eq("receipt_type", receipt_type)
@@ -27,13 +26,19 @@ def get_random_receipt(db: Client, receipt_type: str | None = None) -> Receipt |
 
 
 def get_random_captcha(db: Client, receipt_type: str | None = None):
+    """랜덤 영수증 + 그 영수증의 랜덤 질문 1개 반환"""
     from app.modules.qa.models import CaptchaResponse
 
     receipt = get_random_receipt(db, receipt_type)
     if not receipt:
         return None
 
-    qa_res = db.table("qa_pairs").select("id, question").eq("receipt_id", receipt.id).execute()
+    qa_res = (
+        db.table("qa_pairs")
+        .select("id, question")
+        .eq("receipt_id", receipt.id)
+        .execute()
+    )
     if not qa_res.data:
         return None
 

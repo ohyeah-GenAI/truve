@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-04-13T11:28:55",
+  "base_url": "http://127.0.0.1:8002/api",
+  "save_server_json": true,
+  "run_counts": {
+    "general_macro": 1,
+    "human_like_macro": 1,
+    "llm_macro": 1
+  },
+  "puzzle_types": [
+    "slider",
+    "clickseq",
+    "pathtrace_v2"
+  ],
+  "results": [
+    {
+      "profile": "general_macro",
+      "run_index": 1,
+      "puzzle_type": "slider",
+      "session_id": "e8b9cc68-3fa4-457c-92df-783ae1951890",
+      "status_code": 200,
+      "is_bot": true,
+      "bot_risk_score": 99.4,
+      "result": "bot",
+      "error": null,
+      "request_duration_ms": 42
+    },
+    {
+      "profile": "human_like_macro",
+      "run_index": 1,
+      "puzzle_type": "slider",
+      "session_id": "c4282ba7-5d54-4acd-9d2c-3baa33264e1d",
+      "status_code": 200,
+      "is_bot": false,
+      "bot_risk_score": 2.1,
+      "result": "fail",
+      "error": null,
+      "request_duration_ms": 16
+    },
+    {
+      "profile": "llm_macro",
+      "run_index": 1,
+      "puzzle_type": "slider",
+      "session_id": "c78b6200-0643-4231-a902-9c5f8c1cf7b6",
+      "status_code": 200,
+      "is_bot": false,
+      "bot_risk_score": 0.1,
+      "result": "fail",
+      "error": null,
+      "request_duration_ms": 14
+    }
+  ]
+}

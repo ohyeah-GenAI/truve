@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.modules.qa.router import router as qa_router
 from app.modules.receipts.router import router as receipts_router
+from app.modules.qa.router import router as qa_router
 
 app = FastAPI(
     title="Receipt CAPTCHA API",
@@ -12,7 +11,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # 프론트엔드 연동 후 도메인으로 변경
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
