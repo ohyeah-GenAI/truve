@@ -102,11 +102,15 @@ def _board_hash(problems: list[dict]) -> str:
     return hashlib.md5(ids.encode()).hexdigest()[:8]
 
 
-def _fetch_problems(db) -> list[dict]:
+def _fetch_problems(db, policies: list[str] | None = None) -> list[dict]:
     """Fetch ≥9 problems linked to approved images.
 
     Returns a list of exactly 9 problem dicts (random sample), each with:
         problem_id, question, choices (jsonb list), correct_answer, image_url, illusion_image_id
+
+    Args:
+        policies: distractor_policy 값 목록 (예: ["variant_b", "variant_c"]).
+                  None이면 모든 policy 허용.
     """
     # Collect illusion_image_ids that have been QC-approved
     approved_rows = db.select("approved_images")
@@ -114,17 +118,26 @@ def _fetch_problems(db) -> list[dict]:
 
     rows = db.select("problems", {"is_active": True})
 
+    def _policy_ok(r: dict) -> bool:
+        return policies is None or r.get("distractor_policy") in policies
+
     # Keep only problems whose image is in approved_images AND has a valid storage URL
     valid = [
         r for r in rows
         if r.get("illusion_image_id") in approved_ids
         and r.get("image_url")
         and "seed" in r["image_url"]
+        and _policy_ok(r)
     ]
 
     if len(valid) < 9:
-        # Fallback: any active problem with a new-format URL
-        valid = [r for r in rows if r.get("image_url") and "seed" in r["image_url"]]
+        # Fallback: any active problem with a new-format URL (policy 필터 유지)
+        valid = [
+            r for r in rows
+            if r.get("image_url")
+            and "seed" in r["image_url"]
+            and _policy_ok(r)
+        ]
     # Group by illusion_image_id — one problem per unique image on the board
     groups: dict = defaultdict(list)
     for r in valid:
@@ -247,8 +260,17 @@ async def health():
 
 
 @app.get("/api/puzzle/generate")
-async def generate_puzzle(userId: str | None = None):
-    """Generate a 3x3 VQA puzzle, store session in Redis, return popup_url."""
+async def generate_puzzle(
+    userId: str | None = None,
+    distractor_policy: str = "variant_b,variant_c",
+):
+    """Generate a 3x3 VQA puzzle, store session in Redis, return popup_url.
+
+    Args:
+        distractor_policy: 쉼표로 구분된 policy 목록 (기본: variant_b,variant_c).
+                           예) ?distractor_policy=variant_a
+                               ?distractor_policy=variant_b,variant_c
+    """
     redis = get_redis()
 
     # Optional rate-limit guard
@@ -260,11 +282,13 @@ async def generate_puzzle(userId: str | None = None):
         if count > RATELIMIT_MAX:
             raise HTTPException(status_code=429, detail="새로고침 횟수를 초과했습니다")
 
+    policies = [p.strip() for p in distractor_policy.split(",") if p.strip()]
+
     db = get_db()
     if db is None:
         raise HTTPException(status_code=500, detail="DB가 구성되지 않았습니다")
 
-    problems = _fetch_problems(db)
+    problems = _fetch_problems(db, policies or None)
     board_hash = _board_hash(problems)
 
     # do-while with dedup check, outer retry up to 5
