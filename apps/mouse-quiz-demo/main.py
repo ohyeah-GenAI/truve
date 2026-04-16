@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List
@@ -65,7 +66,7 @@ class SubmitResponse(BaseModel):
     features: Dict[str, Any]
 
 
-ALLOWED_TYPES = {"slider", "clickseq", "pathtrace_v2"}
+ALLOWED_TYPES = {"slider"}
 
 BASE_DIR = Path(__file__).parent
 MODEL_DIR = BASE_DIR / "src" / "backend" / "models"
@@ -93,6 +94,28 @@ _validator = PuzzleValidator()
 _SESSIONS: Dict[str, Dict[str, Any]] = {}
 BOT_THRESHOLD = 0.5
 TEST_LOG_DIR = BASE_DIR / "src" / "backend" / "test_logs"
+SESSION_TTL_SECONDS = 300
+
+
+def _create_session(puzzle_type: str, answer: Dict[str, Any]) -> str:
+    session_id = str(uuid.uuid4())
+    _SESSIONS[session_id] = {
+        "puzzle_type": puzzle_type,
+        "answer": answer,
+        "created_at": time.time(),
+        "expires_at": time.time() + SESSION_TTL_SECONDS,
+    }
+    return session_id
+
+
+def _get_session(session_id: str) -> Dict[str, Any] | None:
+    session = _SESSIONS.get(session_id)
+    if not session:
+        return None
+    if session.get("expires_at", 0) < time.time():
+        _SESSIONS.pop(session_id, None)
+        return None
+    return session
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -128,12 +151,7 @@ async def generate_puzzle(type: str = Query(..., alias="type")) -> GeneratePuzzl
         raise HTTPException(status_code=400, detail=f"Unsupported puzzle type: {type}")
 
     puzzle = _generator.generate(type)
-    session_id = str(uuid.uuid4())
-
-    _SESSIONS[session_id] = {
-        "puzzle_type": type,
-        "answer": puzzle["answer"],
-    }
+    session_id = _create_session(type, puzzle["answer"])
 
     return {
         "session_id": session_id,
@@ -179,7 +197,7 @@ def _persist_test_json(payload: SubmitPayload, response: Dict[str, Any]) -> None
 
 @app.post("/api/puzzle/submit", response_model=SubmitResponse)
 async def submit_puzzle(payload: SubmitPayload) -> SubmitResponse:
-    session = _SESSIONS.pop(payload.session_id, None)
+    session = _get_session(payload.session_id)
     if not session:
         raise HTTPException(status_code=400, detail="Invalid or expired session_id")
 
@@ -231,13 +249,15 @@ async def submit_puzzle(payload: SubmitPayload) -> SubmitResponse:
             # 저장 실패가 사용자 흐름을 막지 않도록 무시
             pass
 
+    _SESSIONS.pop(payload.session_id, None)
+
     return response
 
 
 @app.post("/judge", tags=["AI Verification"], response_model=JudgeResponse)
 async def judge(payload: JudgeRequest) -> JudgeResponse:
     """내부 봇 판별 엔드포인트 — ModuleController에서 호출됨."""
-    session = _SESSIONS.pop(payload.session_id, None)
+    session = _get_session(payload.session_id)
     if not session:
         return JudgeResponse(is_human=False, module="mouse", passed=False)
 
@@ -262,6 +282,8 @@ async def judge(payload: JudgeRequest) -> JudgeResponse:
     proba = float(_human_vs_bot_model.predict_proba(df)[:, 1][0])
     is_bot = proba >= BOT_THRESHOLD
 
+    _SESSIONS.pop(payload.session_id, None)
+
     return JudgeResponse(
         is_human=not is_bot,
         module="mouse",
@@ -272,4 +294,4 @@ async def judge(payload: JudgeRequest) -> JudgeResponse:
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn
 
-    uvicorn.run("src.backend.main:app", host="127.0.0.1", port=8002, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8003, reload=True)

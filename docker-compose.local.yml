@@ -1,0 +1,64 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: truve-ai-redis
+
+  receipt-service:
+    build:
+      context: ./apps/vqa-image-demo
+    container_name: truve-receipt-service
+    env_file:
+      - ./img_vqa_env.txt
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8002:8002"
+    depends_on:
+      - redis
+
+  illusion-service:
+    build:
+      context: ./apps/vqa-illusion-demo
+    container_name: truve-illusion-service
+    env_file:
+      - ./img_vqa_env.txt
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      VQA_ILLUSION_BASE_URL: http://localhost:8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+
+  mouse-service:
+    build:
+      context: ./apps/mouse-quiz-demo
+    container_name: truve-mouse-service
+    ports:
+      - "8003:8003"
+
+  controller-service:
+    build:
+      context: ./apps/module-controller
+    container_name: truve-controller-service
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      DB_HOST: ${DB_HOST:-}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_NAME: ${DB_NAME:-}
+      VQA_IMAGE_URL: http://receipt-service:8002
+      VQA_ILLUSION_URL: http://illusion-service:8001
+      MOUSE_QUIZ_URL: http://mouse-service:8003
+      DEFAULT_SECURITY_LEVEL: ${DEFAULT_SECURITY_LEVEL:-LOW}
+    ports:
+      - "8090:8090"
+    depends_on:
+      - redis
+      - receipt-service
+      - illusion-service
+      - mouse-service

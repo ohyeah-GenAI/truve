@@ -311,6 +311,7 @@ async def generate_puzzle(
 
     return {
         "session_id": session_id,
+        "puzzle_type": "vqa-illusion",
         "puzzle_config": {
             "popup_url": popup_url,
         },
@@ -393,6 +394,8 @@ async def judge(body: JudgeRequest):
     show_schedule_id = data.get("showScheduleId")
     passed = False
 
+    blocked = bool(body.answer.get("blocked")) if isinstance(body.answer, dict) else False
+
     if user_id and show_schedule_id is not None:
         result_key = f"vqa:result:{user_id}:{show_schedule_id}"
         stored = await redis.get(result_key)
@@ -403,7 +406,7 @@ async def judge(body: JudgeRequest):
         if body.answer and "answer_index" in body.answer:
             passed = body.answer["answer_index"] == data.get("correct_index")
 
-    return {"passed": passed, "is_human": passed}
+    return {"passed": passed, "is_human": passed, "blocked": blocked}
 
 
 @app.post("/api/ai/vqa/verify")
