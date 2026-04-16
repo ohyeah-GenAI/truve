@@ -12,6 +12,7 @@ from src.proxy import (
     init_http_client,
     start_challenge,
     submit_judge,
+    verify_challenge,
 )
 from src.redis_client import close_redis, init_redis
 
@@ -72,6 +73,15 @@ class JudgeResponse(BaseModel):
     next_puzzle_config: Optional[Dict[str, Any]] = None
 
 
+class VerifyRequest(BaseModel):
+    user_key: str
+    performance_id: str
+
+
+class VerifyResponse(BaseModel):
+    passed: bool
+
+
 class HealthResponse(BaseModel):
     status: str
 
@@ -106,6 +116,17 @@ async def challenge_judge(req: JudgeRequest) -> JudgeResponse:
     """
     result = await submit_judge(req.flow_session_id, req.answer, req.events)
     return JudgeResponse(**result)
+
+
+@app.post("/challenge/verify", response_model=VerifyResponse)
+async def challenge_verify(req: VerifyRequest) -> VerifyResponse:
+    """
+    백엔드가 티켓팅 시점에 챌린지 통과 여부를 확인하는 엔드포인트.
+
+    /challenge/judge 완료 시 Redis에 저장된 결과를 조회한다.
+    """
+    passed = await verify_challenge(req.user_key, req.performance_id)
+    return VerifyResponse(passed=passed)
 
 
 @app.get("/internal/ai/health", response_model=HealthResponse)

@@ -20,3 +20,4 @@ DEDUP_MAX_RETRY = 5     # dedup 충돌 시 최대 재시도 횟수
 FLOW_SESSION_TTL = 600  # 다단계 챌린지 세션 유효 시간 (초)
 PERF_LEVEL_CACHE_TTL = 300  # security_level Redis 캐시 TTL (초)
 MAX_ATTEMPTS_PER_STEP = 2   # 단계별 최대 시도 횟수 (초과 시 차단)
+VERIFY_RESULT_TTL = 3600    # 챌린지 통과 결과 보관 TTL (초, 1시간)

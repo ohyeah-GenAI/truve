@@ -55,6 +55,31 @@
         }
       }
     },
+    "/challenge/verify": {
+      "post": {
+        "summary": "챌린지 통과 여부 확인",
+        "description": "백엔드가 티켓팅 시점에 호출. 챌린지 완료 결과를 Redis에서 조회하여 통과 여부를 반환한다.",
+        "operationId": "challenge_verify",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VerifyRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VerifyResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/ai/health": {
       "get": {
         "summary": "헬스체크",
@@ -187,6 +212,30 @@
             "nullable": true,
             "description": "다음/재도전 퍼즐 렌더링 설정",
             "additionalProperties": true
+          }
+        }
+      },
+      "VerifyRequest": {
+        "type": "object",
+        "required": ["user_key", "performance_id"],
+        "properties": {
+          "user_key": {
+            "type": "string",
+            "description": "챌린지 시작 시 사용한 사용자 식별자"
+          },
+          "performance_id": {
+            "type": "string",
+            "description": "공연 ID"
+          }
+        }
+      },
+      "VerifyResponse": {
+        "type": "object",
+        "required": ["passed"],
+        "properties": {
+          "passed": {
+            "type": "boolean",
+            "description": "챌린지 통과 여부. Redis에 결과 없으면 false."
           }
         }
       },

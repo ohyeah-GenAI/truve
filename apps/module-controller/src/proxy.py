@@ -13,6 +13,7 @@ from src.config import (
     MAX_ATTEMPTS_PER_STEP,
     MODULE_URLS,
     SECURITY_POLICY,
+    VERIFY_RESULT_TTL,
 )
 from src.dedup import try_claim
 from src.redis_client import get_redis
@@ -165,8 +166,10 @@ async def submit_judge(
     next_step = current_step + 1
 
     if next_step >= len(sequence):
-        # 모든 단계 통과 → 플로우 종료
+        # 모든 단계 통과 → 플로우 종료, 결과 저장
         await redis.delete(flow_key)
+        verify_key = f"challenge_result:{flow['user_key']}:{flow['performance_id']}"
+        await redis.setex(verify_key, VERIFY_RESULT_TTL, "1")
         return {"passed": True, "flow_complete": True}
 
     # 다음 단계 퍼즐 발급
@@ -183,3 +186,11 @@ async def submit_judge(
         "next_puzzle_type": next_type,
         "next_puzzle_config": next_puzzle["puzzle_config"],
     }
+
+
+async def verify_challenge(user_key: str, performance_id: str) -> bool:
+    """백엔드가 티켓팅 시점에 챌린지 통과 여부를 조회."""
+    redis = get_redis()
+    verify_key = f"challenge_result:{user_key}:{performance_id}"
+    result = await redis.get(verify_key)
+    return result == "1"
