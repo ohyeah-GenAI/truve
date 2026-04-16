@@ -296,8 +296,8 @@ async def generate_puzzle(
     for _outer in range(5):
         try:
             data = _generate_board_question(problems, board_hash)
-        except RuntimeError as exc:
-            raise HTTPException(status_code=500, detail=str(exc))
+        except RuntimeError:
+            continue
 
         token = data["problem_token"]
         dup_key = f"vqa:dup_filter:{token}"
