@@ -277,7 +277,10 @@ async def generate_puzzle(
     # do-while with dedup check, outer retry up to 5
     data: dict[str, Any] | None = None
     for _outer in range(5):
-        data = _generate_board_question(problems, board_hash)
+        try:
+            data = _generate_board_question(problems, board_hash)
+        except RuntimeError:
+            continue  # fallback: 예상치 못한 실패 시 outer 루프에서 재시도
 
         token = data["problem_token"]
         dup_key = f"vqa:dup_filter:{token}"
