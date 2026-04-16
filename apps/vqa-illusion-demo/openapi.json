@@ -1,0 +1,366 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "VQA Illusion Service",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/internal/ai/health": {
+      "get": {
+        "summary": "헬스체크",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "서비스 정상",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/puzzle/generate": {
+      "get": {
+        "summary": "퍼즐 생성",
+        "description": "DB에서 9개 문제를 뽑아 3×3 보드를 구성하고 세션을 Redis에 저장한다. ModuleController가 호출하며, 반환된 popup_url을 프론트엔드에 전달한다.",
+        "operationId": "generate_puzzle",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "description": "사용자 식별자. 전달 시 분당 10회 새로고침 제한(rate-limit) 적용.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "distractor_policy",
+            "in": "query",
+            "required": false,
+            "description": "출제할 distractor 정책 (쉼표 구분). 기본값: variant_b,variant_c",
+            "schema": {
+              "type": "string",
+              "default": "variant_b,variant_c",
+              "example": "variant_b,variant_c"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "퍼즐 생성 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GenerateResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "새로고침 횟수 초과 (userId 기준 분당 10회)"
+          },
+          "500": {
+            "description": "고유 이미지 부족 또는 중복 없는 문제 생성 실패"
+          }
+        }
+      }
+    },
+    "/api/session/{session_id}": {
+      "get": {
+        "summary": "세션 조회",
+        "description": "팝업이 마운트될 때 호출. 보드 이미지 배열, 문제, 선택지를 반환한다.",
+        "operationId": "get_session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "세션 데이터",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "세션 없음 또는 만료 (TTL 120초)"
+          }
+        }
+      }
+    },
+    "/api/session/{session_id}/answer": {
+      "post": {
+        "summary": "답변 제출",
+        "description": "팝업에서 사용자가 선택지를 클릭할 때 호출. 정답 여부를 Redis에 저장하고 결과를 반환한다.",
+        "operationId": "submit_answer",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AnswerRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "채점 결과",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AnswerResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "세션 없음 또는 만료"
+          }
+        }
+      }
+    },
+    "/judge": {
+      "post": {
+        "summary": "채점 (ModuleController 전용)",
+        "description": "ModuleController가 호출. Redis 세션에 저장된 결과를 조회하거나 answer_index를 직접 채점한다.",
+        "operationId": "judge",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/JudgeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "채점 결과",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JudgeResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "세션 없음 또는 만료"
+          }
+        }
+      }
+    },
+    "/api/ai/vqa/verify": {
+      "post": {
+        "summary": "챌린지 결과 확인 (백엔드 티켓팅 전용)",
+        "description": "백엔드가 티켓팅 시점에 호출. Redis에 저장된 VQA 통과 결과를 조회한다. (결과는 TTL 600초 보관, 삭제하지 않음)",
+        "operationId": "vqa_verify",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VerifyRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "통과 여부. 결과 없으면 passed=false.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VerifyResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "팝업 HTML 서빙",
+        "description": "static/index.html 반환. 팝업 iframe의 진입점.",
+        "operationId": "root",
+        "responses": {
+          "200": {
+            "description": "HTML 페이지",
+            "content": { "text/html": {} }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        }
+      },
+      "GenerateResponse": {
+        "type": "object",
+        "required": ["session_id", "puzzle_config"],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Redis 세션 ID (120초 TTL)"
+          },
+          "puzzle_config": {
+            "type": "object",
+            "required": ["popup_url"],
+            "properties": {
+              "popup_url": {
+                "type": "string",
+                "description": "프론트엔드가 iframe으로 열어야 할 팝업 URL",
+                "example": "http://illusion-service:8001/?session_id=abc123&userId=user01"
+              }
+            }
+          }
+        }
+      },
+      "SessionResponse": {
+        "type": "object",
+        "required": ["board", "question", "choices", "expires_at"],
+        "properties": {
+          "board": {
+            "type": "array",
+            "description": "3×3 보드 셀 배열 (인덱스 0~8, 좌하단→우상단 순)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "img_url": { "type": "string" },
+                "position": {
+                  "type": "object",
+                  "properties": {
+                    "x": { "type": "integer", "minimum": 1, "maximum": 3 },
+                    "y": { "type": "integer", "minimum": 1, "maximum": 3 }
+                  }
+                }
+              }
+            }
+          },
+          "question": {
+            "type": "string",
+            "description": "공간 방향이 포함된 문제 텍스트",
+            "example": "(1,1)에서 오른쪽으로 2칸 이동한 위치의 이미지에는 어떤 물체가 보이시나요?"
+          },
+          "choices": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "선택지 목록"
+          },
+          "expires_at": {
+            "type": "integer",
+            "description": "세션 만료 Unix timestamp"
+          }
+        }
+      },
+      "AnswerRequest": {
+        "type": "object",
+        "required": ["answer_index"],
+        "properties": {
+          "answer_index": {
+            "type": "integer",
+            "description": "사용자가 선택한 선택지 인덱스 (0-based)"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true,
+            "description": "사용자 식별자. 전달 시 결과를 Redis에 저장 (key: vqa:result:{userId}:{showScheduleId})"
+          },
+          "showScheduleId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "공연 회차 ID"
+          }
+        }
+      },
+      "AnswerResponse": {
+        "type": "object",
+        "required": ["passed"],
+        "properties": {
+          "passed": {
+            "type": "boolean",
+            "description": "정답 여부"
+          }
+        }
+      },
+      "JudgeRequest": {
+        "type": "object",
+        "required": ["session_id"],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "/api/puzzle/generate 응답의 session_id"
+          },
+          "puzzle_type": {
+            "type": "string",
+            "nullable": true,
+            "description": "퍼즐 타입 (현재 미사용, 호환성용)"
+          },
+          "answer": {
+            "type": "object",
+            "nullable": true,
+            "description": "팝업을 통하지 않고 직접 채점할 때 사용. answer_index 포함.",
+            "properties": {
+              "answer_index": { "type": "integer" }
+            }
+          },
+          "events": {
+            "type": "array",
+            "nullable": true,
+            "description": "미사용 (다른 모듈 호환성용)"
+          }
+        }
+      },
+      "JudgeResponse": {
+        "type": "object",
+        "required": ["passed", "is_human"],
+        "properties": {
+          "passed": {
+            "type": "boolean",
+            "description": "채점 통과 여부"
+          },
+          "is_human": {
+            "type": "boolean",
+            "description": "봇 판별 결과 (passed와 동일값)"
+          }
+        }
+      },
+      "VerifyRequest": {
+        "type": "object",
+        "required": ["showScheduleId", "userId"],
+        "properties": {
+          "showScheduleId": {
+            "type": "integer",
+            "description": "공연 회차 ID"
+          },
+          "userId": {
+            "type": "string",
+            "description": "사용자 식별자"
+          }
+        }
+      },
+      "VerifyResponse": {
+        "type": "object",
+        "required": ["passed"],
+        "properties": {
+          "passed": {
+            "type": "boolean",
+            "description": "VQA 통과 여부. Redis에 결과 없으면 false."
+          }
+        }
+      }
+    }
+  }
+}
