@@ -189,8 +189,8 @@ async def submit_judge(
 
 
 async def verify_challenge(user_key: str, performance_id: str) -> bool:
-    """백엔드가 티켓팅 시점에 챌린지 통과 여부를 조회."""
+    """백엔드가 티켓팅 시점에 챌린지 통과 여부를 조회. 조회 즉시 키 삭제 (단발성)."""
     redis = get_redis()
     verify_key = f"challenge_result:{user_key}:{performance_id}"
-    result = await redis.get(verify_key)
+    result = await redis.getdel(verify_key)
     return result == "1"
