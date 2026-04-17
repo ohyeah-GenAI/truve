@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +46,7 @@ class ChallengeStartRequest(BaseModel):
     # TODO: 백엔드 답변 후 user_key 형태 확정 (현재: 단순 문자열)
     # 가능한 형태: JWT 토큰, queue_token, user_id
     user_key: str
+    risk_level: Literal["LOW", "MEDIUM", "HIGH"]
 
 
 class ChallengeStartResponse(BaseModel):
@@ -66,10 +67,10 @@ class JudgeRequest(BaseModel):
 class JudgeResponse(BaseModel):
     passed: bool
     flow_complete: bool
-    blocked: bool = False          # 2차 실패 시 차단
+    blocked: bool = False
     module: Optional[str] = None
     is_human: Optional[bool] = None
-    next_puzzle_type: Optional[str] = None   # 다음 단계 or 재도전 퍼즐 공용
+    next_puzzle_type: Optional[str] = None
     next_puzzle_config: Optional[Dict[str, Any]] = None
 
 
@@ -96,12 +97,12 @@ async def challenge_start(req: ChallengeStartRequest) -> ChallengeStartResponse:
     """
     대기열 통과 후 챌린지 플로우 시작.
 
-    performance_id로 보안 레벨을 조회하여 챌린지 순서를 결정하고
+    프론트가 넘긴 risk_level에 따라 챌린지 순서를 결정하고
     첫 번째 퍼즐을 발급한다.
 
     TODO: 백엔드 연동 방식 확정 후 인증 검증 추가
     """
-    result = await start_challenge(req.performance_id, req.user_key)
+    result = await start_challenge(req.performance_id, req.user_key, req.risk_level)
     return ChallengeStartResponse(**result)
 
 

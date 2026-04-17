@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 from src.database import get_db
 from src.modules.qa import service as qa_service
 from src.modules.qa.router import router as qa_router
+from src.modules.receipts import service as receipts_service
 from src.modules.receipts.router import router as receipts_router
-from src.schemas import JudgeRequest, JudgeResponse
+from src.schemas import GeneratePuzzleResponse, JudgeResponse, SessionJudgeRequest
 
 
 class HealthResponse(BaseModel):
@@ -43,16 +44,24 @@ def ai_health_check():
     return {"status": "ok"}
 
 
+@app.get("/api/puzzle/generate", response_model=GeneratePuzzleResponse)
+def generate_puzzle(
+    type: str = Query(..., alias="type"),
+    db: Session = Depends(get_db),
+):
+    if type != "vqa-image":
+        raise HTTPException(status_code=400, detail=f"Unsupported puzzle type: {type}")
+
+    puzzle = receipts_service.generate_challenge_puzzle(db)
+    if not puzzle:
+        raise HTTPException(status_code=404, detail="영수증 또는 질문을 찾을 수 없습니다.")
+    return GeneratePuzzleResponse(**puzzle)
+
+
 @app.post("/judge", tags=["AI Verification"], response_model=JudgeResponse)
-def judge(request: JudgeRequest, db: Session = Depends(get_db)):
+def judge(request: SessionJudgeRequest):
     """
     내부 봇 판별 엔드포인트 - ModuleController에서 호출됨.
-    problem_id는 qa_pairs 테이블의 question_id(int)에 해당.
     """
-    try:
-        question_id = int(request.problem_id)
-    except (ValueError, TypeError):
-        return JudgeResponse(is_human=False, module="receipt", passed=False)
-
-    passed = qa_service.verify_single_answer(db, question_id, request.user_answer)
-    return JudgeResponse(is_human=passed, module="receipt", passed=passed)
+    passed = qa_service.verify_session_answer(request.session_id, request.answer.text)
+    return JudgeResponse(is_human=passed, module="vqa-image", passed=passed)

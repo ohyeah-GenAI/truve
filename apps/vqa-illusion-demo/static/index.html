@@ -314,6 +314,20 @@
       document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f9fafb;"><div style="text-align:center;"><div style="font-size:56px">✅</div><div style="font-size:20px;font-weight:700;margin-top:12px;color:#111827;">확인 완료</div><div style="color:#6b7280;margin-top:6px;font-size:14px;">이 창을 닫아도 됩니다.</div></div></div>';
     }
 
+    function notifyParent(payload) {
+      const message = {
+        type: 'vqa-illusion:result',
+        session_id: sessionId,
+        ...payload,
+      };
+
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(message, '*');
+        }
+      } catch (e) {}
+    }
+
     /* ── Board rendering ────────────────────────────────────────────── */
     function renderBoard(board) {
       boardGrid.innerHTML = '';
@@ -446,12 +460,22 @@
 
         if (data.passed) {
           /* ── Pass ── */
+          notifyParent({
+            passed: true,
+            blocked: false,
+            answer_index: selectedIndex,
+          });
           passModal.style.display = 'flex';
           setTimeout(closeWindow, 1500);
         } else {
           attemptCount++;
           if (attemptCount >= 2) {
             /* ── Block ── */
+            notifyParent({
+              passed: false,
+              blocked: true,
+              answer_index: selectedIndex,
+            });
             blockModal.style.display = 'flex';
             setTimeout(closeWindow, 2000);
           } else {

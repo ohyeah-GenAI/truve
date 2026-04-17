@@ -2,26 +2,47 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.modules.qa.models import QAPair, QuestionOnly, VerifyRequest, VerifyResponse, VerifyResult
+from src.session_store import pop_session
+
+
+def normalize_answer(value: str) -> str:
+    return value.strip().lower()
+
+
+def _fetch_answer_by_question_id(db: Session, question_id: int) -> str | None:
+    row = db.execute(
+        text("SELECT answer FROM qa_pairs WHERE qa_id = :question_id"),
+        {"question_id": question_id},
+    ).fetchone()
+    if not row:
+        return None
+    return row[0]
 
 
 def verify_single_answer(db: Session, question_id: int, user_answer: str) -> bool:
     """단일 질문 ID와 사용자 답변을 검증. 정답이면 True 반환."""
-    result = db.execute(
-        text("SELECT answer FROM qa_pairs WHERE id = :question_id"),
-        {"question_id": question_id},
-    )
-    row = result.fetchone()
-    if not row:
+    expected = _fetch_answer_by_question_id(db, question_id)
+    if expected is None:
         return False
-    expected = row[0]
-    return expected.strip().lower() == user_answer.strip().lower()
+    return normalize_answer(expected) == normalize_answer(user_answer)
+
+
+def verify_session_answer(session_id: str, user_answer: str) -> bool:
+    session = pop_session(session_id)
+    if not session:
+        return False
+    expected = session.get("expected_answer")
+    if expected is None:
+        return False
+    expected = str(expected)
+    return normalize_answer(expected) == normalize_answer(user_answer)
 
 
 def get_questions(db: Session, receipt_id: str) -> list[QuestionOnly]:
     result = db.execute(
         text(
-            "SELECT id, receipt_id, question, `order` FROM qa_pairs "
-            "WHERE receipt_id = :receipt_id ORDER BY `order`"
+            "SELECT qa_id, receipt_id, question, 1 AS display_order "
+            "FROM qa_pairs WHERE receipt_id = :receipt_id"
         ),
         {"receipt_id": receipt_id},
     )
@@ -33,8 +54,10 @@ def get_questions(db: Session, receipt_id: str) -> list[QuestionOnly]:
 
 def get_qa_pairs(db: Session, receipt_id: str) -> list[QAPair]:
     result = db.execute(
-        text("SELECT id, receipt_id, question, answer, `order`, created_at FROM qa_pairs "
-             "WHERE receipt_id = :receipt_id ORDER BY `order`"),
+        text(
+            "SELECT qa_id, receipt_id, question, answer, 1 AS display_order, NULL AS created_at "
+            "FROM qa_pairs WHERE receipt_id = :receipt_id"
+        ),
         {"receipt_id": receipt_id},
     )
     return [
@@ -59,7 +82,7 @@ def verify_answers(db: Session, receipt_id: str, request: VerifyRequest) -> Veri
         qa = qa_map.get(submission.question_id)
         if qa is None:
             continue
-        correct = qa.answer.strip().lower() == submission.answer.strip().lower()
+        correct = normalize_answer(qa.answer) == normalize_answer(submission.answer)
         results.append(
             VerifyResult(
                 question_id=submission.question_id,

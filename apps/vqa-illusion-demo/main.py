@@ -151,55 +151,72 @@ def _fetch_problems(db, policies: list[str] | None = None) -> list[dict]:
 
 
 def _generate_board_question(problems: list[dict], board_hash: str) -> dict:
-    """유효한 (시작점, 방향, 거리) 조합 전체를 구한 뒤 랜덤 샘플링."""
-    # 범위 내 조합만 사전 계산
-    valid = [
-        (sx, sy, dir_id, dir_text, dx, dy, dist)
-        for sx in range(1, 4)
-        for sy in range(1, 4)
-        for (dir_id, dir_text, dx, dy) in DIRECTIONS
-        for dist in (1, 2)
-        if 1 <= sx + dx * dist <= 3 and 1 <= sy + dy * dist <= 3
-    ]
-    sx, sy, dir_id, dir_text, dx, dy, dist = random.choice(valid)
+    """Run the do-while algorithm (max 5 retries) and return board question data.
 
-    target_index = _coord_to_index(sx + dx * dist, sy + dy * dist)
-    target_prob = problems[target_index]
+    Returns dict with keys:
+        board, question, choices, correct_index,
+        problem_token, start_x, start_y, dir_id, dist, target_index
+    Raises RuntimeError after 5 failed attempts.
+    """
+    for _ in range(5):
+        start_x = random.randint(1, 3)
+        start_y = random.randint(1, 3)
+        dir_id, dir_text, dx, dy = random.choice(DIRECTIONS)
+        dist = random.randint(1, 2)
 
-    raw_q = target_prob.get("question", "")
-    suffix = raw_q[2:] if len(raw_q) > 2 else raw_q
-    question = f"({sx},{sy})에서 {dir_text}으로 {dist}칸 이동한 위치의 {suffix}"
+        target_x = start_x + dx * dist
+        target_y = start_y + dy * dist
 
-    raw_choices = target_prob.get("choices", [])
-    if isinstance(raw_choices, str):
-        try:
-            choices = json.loads(raw_choices)
-        except Exception:
-            choices = [raw_choices]
-    else:
-        choices = list(raw_choices)
+        # Validate bounds
+        if not (1 <= target_x <= 3 and 1 <= target_y <= 3):
+            continue
 
-    correct_index = int(target_prob.get("correct_answer", 0))
-    target_img_id = target_prob.get("illusion_image_id", "")
-    problem_token = f"B{board_hash}:P{sx}{sy}:D{dir_id}:Dist{dist}:I{target_img_id}"
+        target_index = _coord_to_index(target_x, target_y)
+        target_prob = problems[target_index]
 
-    board = [
-        {"img_url": p.get("image_url", ""), "label": p.get("question", "")}
-        for p in problems
-    ]
+        # Build question — strip leading "이 " (2 chars) from question text and prepend spatial prefix
+        # e.g. "이 이미지에는 어떤 물체가 보이시나요?" → "이미지에는 어떤 물체가 보이시나요?"
+        raw_q = target_prob.get("question", "")
+        suffix = raw_q[2:] if len(raw_q) > 2 else raw_q
+        question = f"({start_x},{start_y})에서 {dir_text}으로 {dist}칸 이동한 위치의 {suffix}"
 
-    return {
-        "board": board,
-        "question": question,
-        "choices": choices,
-        "correct_index": correct_index,
-        "problem_token": problem_token,
-        "start_x": sx,
-        "start_y": sy,
-        "dir_id": dir_id,
-        "dist": dist,
-        "target_index": target_index,
-    }
+        # choices come directly from DB (jsonb — already a list, or JSON string)
+        raw_choices = target_prob.get("choices", [])
+        if isinstance(raw_choices, str):
+            try:
+                choices = json.loads(raw_choices)
+            except Exception:
+                choices = [raw_choices]
+        else:
+            choices = list(raw_choices)
+
+        correct_index = int(target_prob.get("correct_answer", 0))
+        target_img_id = target_prob.get("illusion_image_id", "")
+        problem_token = f"B{board_hash}:P{start_x}{start_y}:D{dir_id}:Dist{dist}:I{target_img_id}"
+
+        # Build board list (index 0..8)
+        board = [
+            {
+                "img_url": p.get("image_url", ""),
+                "label": p.get("question", ""),
+            }
+            for p in problems
+        ]
+
+        return {
+            "board": board,
+            "question": question,
+            "choices": choices,
+            "correct_index": correct_index,
+            "problem_token": problem_token,
+            "start_x": start_x,
+            "start_y": start_y,
+            "dir_id": dir_id,
+            "dist": dist,
+            "target_index": target_index,
+        }
+
+    raise RuntimeError("유효한 문제 조합 생성 실패 (5회 재시도 초과)")
 
 
 # ---------------------------------------------------------------------------
@@ -311,6 +328,7 @@ async def generate_puzzle(
 
     return {
         "session_id": session_id,
+        "puzzle_type": "vqa-illusion",
         "puzzle_config": {
             "popup_url": popup_url,
         },
@@ -393,6 +411,8 @@ async def judge(body: JudgeRequest):
     show_schedule_id = data.get("showScheduleId")
     passed = False
 
+    blocked = bool(body.answer.get("blocked")) if isinstance(body.answer, dict) else False
+
     if user_id and show_schedule_id is not None:
         result_key = f"vqa:result:{user_id}:{show_schedule_id}"
         stored = await redis.get(result_key)
@@ -403,7 +423,7 @@ async def judge(body: JudgeRequest):
         if body.answer and "answer_index" in body.answer:
             passed = body.answer["answer_index"] == data.get("correct_index")
 
-    return {"passed": passed, "is_human": passed}
+    return {"passed": passed, "is_human": passed, "blocked": blocked}
 
 
 @app.post("/api/ai/vqa/verify")
