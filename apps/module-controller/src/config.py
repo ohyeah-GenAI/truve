@@ -4,9 +4,9 @@ import os
 
 # 프론트가 넘긴 risk_level → 챌린지 단계 순서
 SECURITY_POLICY: dict[str, list[str]] = {
-    "LOW": ["mouse-slider"],
-    "MEDIUM": ["mouse-slider", "vqa-image"],
-    "HIGH": ["mouse-slider", "vqa-illusion"],
+    "LOW": ["vqa-illusion"],
+    "MEDIUM": ["vqa-illusion"],
+    "HIGH": ["vqa-illusion"],
 }
 
 MODULE_URLS: dict[str, str] = {
