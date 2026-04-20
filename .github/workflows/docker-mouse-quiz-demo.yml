@@ -2,12 +2,8 @@ name: Build & Push mouse-quiz-demo to Docker Hub
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'mouse-quiz-demo/v*.*.*'
-    paths:
-      - 'apps/mouse-quiz-demo/**'
   workflow_dispatch:
     inputs:
       version:

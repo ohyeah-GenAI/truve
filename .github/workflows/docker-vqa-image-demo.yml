@@ -2,12 +2,8 @@ name: Build & Push vqa-image-demo to Docker Hub
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'vqa-image-demo/v*.*.*'
-    paths:
-      - 'apps/vqa-image-demo/**'
   workflow_dispatch:
     inputs:
       version:

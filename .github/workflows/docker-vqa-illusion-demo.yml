@@ -2,12 +2,8 @@ name: Build & Push vqa-illusion-demo to Docker Hub
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'vqa-illusion-demo/v*.*.*'
-    paths:
-      - 'apps/vqa-illusion-demo/**'
   workflow_dispatch:
     inputs:
       version:
